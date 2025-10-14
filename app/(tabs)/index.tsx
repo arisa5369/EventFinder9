@@ -10,7 +10,7 @@ export default function SplashScreen() {
   const slideAnim = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // Fade + scale
+    
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -31,7 +31,7 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    // Bounce subtle efekt tek logo
+    
     Animated.loop(
       Animated.sequence([
         Animated.timing(bounceAnim, {
@@ -60,7 +60,7 @@ export default function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Glow efekt tek logo */}
+      
       <Animated.Text
         style={[
           styles.title,

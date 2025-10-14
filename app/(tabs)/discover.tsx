@@ -34,7 +34,7 @@ export default function Discover() {
     <View style={styles.container}>
       <Text style={styles.header}>Discover Events</Text>
 
-      {/* Touchable Search Bar */}
+      
       <TouchableOpacity
   onPress={() => setModalVisible(true)}
   style={styles.inputTouchable}
@@ -58,7 +58,7 @@ export default function Discover() {
         )}
       />
 
-      {/* Search Modal */}
+      
       <Modal animationType="slide" visible={modalVisible} transparent={true}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 50,
-    backgroundColor: "#f2f4f8", // hije e lehtë, modern
+    backgroundColor: "#f2f4f8", 
   },
   header: {
     fontSize: 24,
@@ -136,7 +136,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 16, fontWeight: "600", color: "#222" },
   location: { fontSize: 14, color: "#1f1d1dff", marginTop: 4 },
 
-  // Modal
+ 
   modalContainer: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
