@@ -1,0 +1,26 @@
+[
+  {
+    "id": "1",
+    "name": "Basketball Championship",
+    "date": "Nov 20, 2025",
+    "location": "Prishtina Arena",
+    "price": 15,
+    "image": "https://picsum.photos/400/250?1"
+  },
+  {
+    "id": "2",
+    "name": "Rock Festival",
+    "date": "Dec 5, 2025",
+    "location": "Skanderbeg Square",
+    "price": 25,
+    "image": "https://picsum.photos/400/250?2"
+  },
+  {
+    "id": "3",
+    "name": "Jazz Night",
+    "date": "Jan 10, 2026",
+    "location": "Peja Cultural Hall",
+    "price": 20,
+    "image": "https://picsum.photos/400/250?3"
+  }
+]
