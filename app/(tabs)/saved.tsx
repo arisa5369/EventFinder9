@@ -1,38 +1,45 @@
 import React, { useState, useEffect } from "react";
-import { FlatList, Image, StyleSheet, Text, View, Button } from "react-native";
+import { FlatList, Image, StyleSheet, Text, View, RefreshControl, Button } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Event {
   id: string;
   name: string;
   location: string;
+  date: string;
+  description: string;
+  attendees: string;
+  price: string;
+  organizer: string;
   image?: { uri: string };
 }
 
 export default function Saved({ navigation }: { navigation?: any }) {
   const [savedEvents, setSavedEvents] = useState<Event[]>([]);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Function to load saved events
   const loadSavedEvents = async () => {
     try {
       const savedEventsJson = await AsyncStorage.getItem("savedEvents");
-      console.log("Saved events (JSON):", savedEventsJson);
       const events: Event[] = savedEventsJson ? JSON.parse(savedEventsJson) : [];
-      console.log("Saved events (parsed):", events);
       setSavedEvents(events);
     } catch (error) {
       console.error("Error loading events:", error);
     }
   };
 
-  // Load events when component mounts and when screen is focused
   useEffect(() => {
     loadSavedEvents();
     const unsubscribe = navigation?.addListener?.("focus", loadSavedEvents);
     return unsubscribe;
   }, [navigation]);
 
-  // Function to remove an event
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadSavedEvents();
+    setRefreshing(false);
+  };
+
   const removeEvent = async (eventId: string) => {
     try {
       const savedEventsJson = await AsyncStorage.getItem("savedEvents");
@@ -40,7 +47,6 @@ export default function Saved({ navigation }: { navigation?: any }) {
       savedEvents = savedEvents.filter((event) => event.id !== eventId);
       await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
       setSavedEvents(savedEvents);
-      console.log("Event removed, ID:", eventId);
       alert("Event removed successfully!");
     } catch (error) {
       console.error("Error removing event:", error);
@@ -51,43 +57,53 @@ export default function Saved({ navigation }: { navigation?: any }) {
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Saved Events</Text>
-      <Button
-        title="Refresh"
-        onPress={loadSavedEvents}
-        color="#2196F3" // Blue color for Refresh button
+      <FlatList
+        data={savedEvents}
+        keyExtractor={(item) => item.id || `fallback-${Math.random()}`}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+          />
+        }
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.name}>{item.name || "Unknown Name"}</Text>
+            <Text style={styles.date}>{item.date || "Unknown Date"}</Text>
+            <Text style={styles.location}>
+              {item.location || "Unknown Location"}
+            </Text>
+            <Text style={styles.description} numberOfLines={2}>
+              {item.description || "No description available"}
+            </Text>
+            <Text style={styles.attendees}>
+              {item.attendees || "Unknown attendees"}
+            </Text>
+            <Text style={styles.price}>
+              {item.price || "Unknown price"}
+            </Text>
+            <Text style={styles.organizer}>
+              Organized by: {item.organizer || "Unknown organizer"}
+            </Text>
+            <Image
+              source={
+                item.image && item.image.uri
+                  ? item.image
+                  : { uri: "https://via.placeholder.com/300x150.png?text=No+Image" }
+              }
+              style={styles.eventImage}
+            />
+            <Button
+              title="Remove"
+              onPress={() => removeEvent(item.id)}
+              color="#FF0000"
+            />
+          </View>
+        )}
+        ListEmptyComponent={() => (
+          <Text style={styles.emptyText}>No events saved yet.</Text>
+        )}
       />
-      {savedEvents.length === 0 ? (
-        <Text style={styles.emptyText}>No events saved yet.</Text>
-      ) : (
-        <FlatList
-          data={savedEvents}
-          keyExtractor={(item) => {
-            console.log("Saved item.id:", item.id);
-            return item.id || `fallback-${Math.random()}`;
-          }}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <Text style={styles.name}>{item.name || "Unknown Name"}</Text>
-              <Text style={styles.location}>
-                {item.location || "Unknown Location"}
-              </Text>
-              <Image
-                source={
-                  item.image && item.image.uri
-                    ? item.image
-                    : { uri: "https://via.placeholder.com/300x150.png?text=No+Image" }
-                }
-                style={styles.eventImage}
-              />
-              <Button
-                title="Remove"
-                onPress={() => removeEvent(item.id)}
-                color="#FF0000"
-              />
-            </View>
-          )}
-        />
-      )}
     </View>
   );
 }
@@ -129,10 +145,39 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#222",
   },
+  date: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+    fontStyle: "italic",
+  },
   location: {
     fontSize: 14,
     color: "#1f1d1d",
     marginTop: 4,
+  },
+  description: {
+    fontSize: 12,
+    color: "#555",
+    marginTop: 6,
+    lineHeight: 16,
+  },
+  attendees: {
+    fontSize: 14,
+    color: "#333",
+    marginTop: 5,
+    fontWeight: "500",
+  },
+  price: {
+    fontSize: 14,
+    color: "#4CAF50",
+    marginTop: 3,
+    fontWeight: "600",
+  },
+  organizer: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 5,
   },
   eventImage: {
     width: "100%",
