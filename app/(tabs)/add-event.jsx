@@ -24,126 +24,145 @@ const EVENT_TYPES = [
 export default function AddEventScreen() {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [eventTitle, setEventTitle] = useState("");
-  const [date, setDate] = useState(new Date(2025, 10, 25));
-  const [startTime, setStartTime] = useState(new Date(2025, 10, 25, 10, 0));
-  const [endTime, setEndTime] = useState(new Date(2025, 10, 25, 12, 0));
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
-  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [startTime, setStartTime] = useState(new Date());
+  const [endTime, setEndTime] = useState(new Date());
+  const [showPicker, setShowPicker] = useState({
+    date: false,
+    start: false,
+    end: false,
+  });
   const [locationType, setLocationType] = useState("venue");
 
-  const toggleType = (type) => {
-    setSelectedTypes(
-      selectedTypes.includes(type)
-        ? selectedTypes.filter((t) => t !== type)
-        : [...selectedTypes, type]
+  const toggleType = (type) =>
+    setSelectedTypes((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
     );
-  };
+
+  const handlePickerChange = (key, value) =>
+    setShowPicker((prev) => ({ ...prev, [key]: value }));
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <View style={styles.illustration}>
-          <Text style={styles.emoji}>🎉</Text>
-        </View>
-
-        <Text style={styles.title}>Let's get to know you first!</Text>
-        <Text style={styles.subtitle}>
-          Tell us what kind of events you want to host and we’ll help make it happen.
+      <StatusBar barStyle="light-content" />
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
+        <Text style={styles.header}>Create Your Event</Text>
+        <Text style={styles.subheader}>
+          Tell us about your event so we can help you make it great!
         </Text>
 
+        {/* EVENT TYPE */}
         <Text style={styles.label}>What type of events do you host?</Text>
         <View style={styles.chipContainer}>
           {EVENT_TYPES.map((type) => (
             <TouchableOpacity
               key={type}
-              style={[styles.chip, selectedTypes.includes(type) && styles.chipSelected]}
+              style={[
+                styles.chip,
+                selectedTypes.includes(type) && styles.chipSelected,
+              ]}
               onPress={() => toggleType(type)}
             >
-              <Text style={[styles.chipText, selectedTypes.includes(type) && styles.chipTextSelected]}>
+              <Text
+                style={[
+                  styles.chipText,
+                  selectedTypes.includes(type) && styles.chipTextSelected,
+                ]}
+              >
                 {type}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <View style={styles.section}>
-          <Text style={styles.label}>What's the name of your event?</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Event title"
-            placeholderTextColor="#aaa"
-            value={eventTitle}
-            onChangeText={setEventTitle}
+        {/* EVENT TITLE */}
+        <Text style={styles.label}>What's the name of your event?</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Event title"
+          placeholderTextColor="#777"
+          value={eventTitle}
+          onChangeText={setEventTitle}
+        />
+
+        {/* DATE & TIME */}
+        <Text style={[styles.label, { marginTop: 20 }]}>
+          When does your event start and end?
+        </Text>
+        <TouchableOpacity
+          style={styles.dateButton}
+          onPress={() => handlePickerChange("date", true)}
+        >
+          <Text style={styles.dateButtonText}>{date.toLocaleDateString()}</Text>
+        </TouchableOpacity>
+
+        {showPicker.date && (
+          <DateTimePicker
+            value={date}
+            mode="date"
+            display="default"
+            onChange={(e, d) => {
+              handlePickerChange("date", false);
+              if (d) setDate(d);
+            }}
           />
+        )}
 
-          <Text style={[styles.label, { marginTop: 20 }]}>When does your event start and end?</Text>
-
-          <TouchableOpacity style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Text style={styles.dateButtonText}>{date.toLocaleDateString()}</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={date}
-              mode="date"
-              display="default"
-              onChange={(e, selectedDate) => {
-                setShowDatePicker(false);
-                if (selectedDate) setDate(selectedDate);
-              }}
-            />
-          )}
-
-          <View style={styles.timeRow}>
-            <TouchableOpacity style={styles.timeButton} onPress={() => setShowStartTimePicker(true)}>
+        <View style={styles.timeRow}>
+          {[
+            { key: "start", label: "Start", value: startTime, setter: setStartTime },
+            { key: "end", label: "End", value: endTime, setter: setEndTime },
+          ].map(({ key, label, value, setter }) => (
+            <TouchableOpacity
+              key={key}
+              style={styles.timeButton}
+              onPress={() => handlePickerChange(key, true)}
+            >
               <Text style={styles.dateButtonText}>
-                Start: {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {label}:{" "}
+                {value.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </Text>
+              {showPicker[key] && (
+                <DateTimePicker
+                  value={value}
+                  mode="time"
+                  display="default"
+                  onChange={(e, t) => {
+                    handlePickerChange(key, false);
+                    if (t) setter(t);
+                  }}
+                />
+              )}
             </TouchableOpacity>
-            <TouchableOpacity style={styles.timeButton} onPress={() => setShowEndTimePicker(true)}>
-              <Text style={styles.dateButtonText}>
-                End: {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </Text>
-            </TouchableOpacity>
-          </View>
-          {showStartTimePicker && (
-            <DateTimePicker
-              value={startTime}
-              mode="time"
-              display="default"
-              onChange={(e, selectedTime) => {
-                setShowStartTimePicker(false);
-                if (selectedTime) setStartTime(selectedTime);
-              }}
-            />
-          )}
-          {showEndTimePicker && (
-            <DateTimePicker
-              value={endTime}
-              mode="time"
-              display="default"
-              onChange={(e, selectedTime) => {
-                setShowEndTimePicker(false);
-                if (selectedTime) setEndTime(selectedTime);
-              }}
-            />
-          )}
+          ))}
+        </View>
 
-          <Text style={[styles.label, { marginTop: 20 }]}>Where is it located?</Text>
-          <View style={styles.locationRow}>
-            {["venue", "online", "tba"].map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.locationButton, locationType === key && styles.locationButtonSelected]}
-                onPress={() => setLocationType(key)}
+        {/* LOCATION TYPE */}
+        <Text style={[styles.label, { marginTop: 20 }]}>Where is it located?</Text>
+        <View style={styles.locationRow}>
+          {[
+            { key: "venue", label: "Venue" },
+            { key: "online", label: "Online event" },
+            { key: "tba", label: "To be announced" },
+          ].map(({ key, label }) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.locationButton,
+                locationType === key && styles.locationButtonSelected,
+              ]}
+              onPress={() => setLocationType(key)}
+            >
+              <Text
+                style={[
+                  styles.locationText,
+                  locationType === key && styles.locationTextSelected,
+                ]}
               >
-                <Text style={[styles.locationText, locationType === key && styles.locationTextSelected]}>
-                  {key === "venue" ? "Venue" : key === "online" ? "Online event" : "To be announced"}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -151,26 +170,65 @@ export default function AddEventScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000", padding: 20 },
-  illustration: { alignItems: "center", marginTop: 10, marginBottom: 20 },
-  emoji: { fontSize: 60 },
-  title: { fontSize: 22, fontWeight: "700", textAlign: "center", marginBottom: 6, color: "#fff" },
-  subtitle: { textAlign: "center", fontSize: 15, color: "#ccc", marginBottom: 20 },
-  label: { fontSize: 16, fontWeight: "600", color: "#fff", marginBottom: 8 },
-  chipContainer: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  chip: { backgroundColor: "#222", borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, margin: 5 },
+  container: { flex: 1, backgroundColor: "#000" },
+  scroll: { paddingHorizontal: 20 },
+  header: { fontSize: 22, fontWeight: "700", color: "#fff", marginTop: 10 },
+  subheader: { color: "#aaa", fontSize: 15, marginBottom: 20 },
+  label: { fontSize: 16, fontWeight: "600", color: "#fff", marginBottom: 10 },
+  chipContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 20,
+  },
+  chip: {
+    backgroundColor: "#1a1a1a",
+    borderRadius: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginRight: 8,
+    marginBottom: 8,
+  },
   chipSelected: { backgroundColor: "#4E73DF" },
   chipText: { fontSize: 14, color: "#fff" },
   chipTextSelected: { color: "#fff", fontWeight: "600" },
-  section: { marginTop: 30 },
-  input: { backgroundColor: "#111", borderRadius: 8, borderWidth: 1, borderColor: "#444", padding: 12, fontSize: 16, color: "#fff" },
-  dateButton: { backgroundColor: "#111", borderRadius: 8, padding: 12, borderWidth: 1, borderColor: "#444", marginTop: 5 },
+  input: {
+    backgroundColor: "#111",
+    borderRadius: 10,
+    padding: 14,
+    fontSize: 16,
+    color: "#fff",
+  },
+  dateButton: {
+    backgroundColor: "#111",
+    borderRadius: 10,
+    padding: 14,
+    marginTop: 6,
+  },
   dateButtonText: { fontSize: 15, color: "#fff" },
   timeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
-  timeButton: { flex: 1, backgroundColor: "#111", borderRadius: 8, borderWidth: 1, borderColor: "#444", padding: 12, marginHorizontal: 5 },
-  locationRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
-  locationButton: { flex: 1, borderWidth: 1, borderColor: "#444", borderRadius: 8, paddingVertical: 12, alignItems: "center", backgroundColor: "#111", marginHorizontal: 4 },
-  locationButtonSelected: { backgroundColor: "#4E73DF", borderColor: "#4E73DF" },
+  timeButton: {
+    flex: 1,
+    backgroundColor: "#111",
+    borderRadius: 10,
+    padding: 14,
+    marginHorizontal: 4,
+  },
+  locationRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 10,
+    marginBottom: 40,
+  },
+  locationButton: {
+    flex: 1,
+    borderRadius: 10,
+    backgroundColor: "#111",
+    paddingVertical: 14,
+    alignItems: "center",
+    marginHorizontal: 4,
+  },
+  locationButtonSelected: { backgroundColor: "#4E73DF" },
   locationText: { color: "#fff", fontWeight: "500" },
   locationTextSelected: { color: "#fff", fontWeight: "700" },
 });
