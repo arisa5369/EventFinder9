@@ -130,7 +130,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
           </Text>
         </View>
       </TouchableOpacity>
-      <Text style={styles.subheader}>Trending Now 🔥</Text>
+      <Text style={styles.subheader}>Events</Text>
       <FlatList
         data={filteredEvents}
         keyExtractor={(item) => item.id || `fallback-${Math.random()}`}
