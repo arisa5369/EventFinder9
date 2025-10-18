@@ -4,8 +4,8 @@ import events from "../event/events.json";
 
 const colors = {
   dark: {
-    text: "#fff",
-    background: "#000",
+    text: "#000",
+    background: "#fff",
     tint: "#4E73DF",
     icon: "#aaa",
     tabIconDefault: "#aaa",
@@ -43,8 +43,8 @@ export default function EventsList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.dark.background,
-    padding: 20,
+    backgroundColor: "white",
+    padding: 30,
   },
   title: {
     color: colors.dark.text,
@@ -54,7 +54,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   card: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#dfdfdfff",
     borderRadius: 14,
     marginBottom: 16,
     overflow: "hidden",
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   image: {
-    width: "100",
+    width: "100%",
     height: 180,
   },
   info: {
@@ -77,7 +77,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   details: {
-    color: colors.dark.icon,
+    color: colors.dark.text,
     fontSize: 14,
   },
   price: {
