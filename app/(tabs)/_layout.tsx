@@ -28,6 +28,18 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="add-event"
+        options={{
+          title: 'Add Event',
+        }}
+      />
+      <Tabs.Screen
+        name="past-events"
+        options={{
+          title: 'Past Events',
+        }}
+      />
+      <Tabs.Screen
         name="tickets"
         options={{
           title: 'Tickets',
