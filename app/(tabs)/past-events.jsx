@@ -1,8 +1,7 @@
-import { useState } from "react";
+import { useRouter } from "expo-router";
 import {
   Dimensions,
   FlatList,
-  Image,
   ImageBackground,
   SafeAreaView,
   ScrollView,
@@ -13,61 +12,71 @@ import {
   View,
 } from "react-native";
 
+const events = require("../data/events.json");
 const { width } = Dimensions.get("window");
 
-export default function PastEventsScreen() {
-  const [events] = useState([
-    {
-      id: "1",
-      title: "ARD Athletics Club’s Fast & Scenic 3 Vlei Race 2024",
-      category: "RUNNING",
-      date: "16 Mar 2024",
-      location: "Fairmount High School",
-      status: "Expired",
-      image: "https://picsum.photos/600/400?random=11",
-    },
-    {
-      id: "2",
-      title: "AVBOB Tygerberg 30km 2025",
-      category: "RUNNING",
-      date: "16 Mar 2025",
-      location: "Western Cape",
-      status: "Expired",
-      image: "https://picsum.photos/600/400?random=22",
-    },
-    {
-      id: "3",
-      title: "City Marathon 2023",
-      category: "RUNNING",
-      date: "22 Oct 2023",
-      location: "New York",
-      status: "Expired",
-      image: "https://picsum.photos/600/400?random=33",
-    },
-  ]);
+const localImages = {
+  "sunnyhill2.jpg": require("../../assets/images/sunnyhill2.jpg"),
+  "dokufest.jpg": require("../../assets/images/dokufest.jpg"),
+  "etnofest.jpg": require("../../assets/images/etnofest.jpg"),
+  "chopin.jpg": require("../../assets/images/chopin.jpg"),
+  "unum.jpg": require("../../assets/images/unum.jpg"),
+  "speed.jpg": require("../../assets/images/speed.jpg"),
+};
 
-  const [pastStories] = useState([
-    {
-      id: "a1",
-      title: "The Annual Charity Run That Changed the City Spirit",
-      image: "https://picsum.photos/600/400?random=44",
-    },
-    {
-      id: "a2",
-      title: "A Look Back at 2024’s Most Iconic Sports Moments",
-      image: "https://picsum.photos/600/400?random=55",
-    },
-    {
-      id: "a3",
-      title: "The Legendary Trail Marathon Through the Alps",
-      image: "https://picsum.photos/600/400?random=66",
-    },
-  ]);
+const pastStories = [
+  {
+    id: "a1",
+    title: 'Dua Lipa went on stage with her father, Dukagjin Lipa, to perform the song "Era" by the band Gjurmët, moving the audience with this special act.',
+    image: require("../../assets/images/dua3.jpg"),
+  },
+  {
+    id: "a2",
+    title: "Alban Skënderaj - 'MOTIV' Concert. Due to high demand, tickets for the first night sold out within hours, prompting the addition of three more nights.",
+   image: require("../../assets/images/albani.jpg"),
+  },
+   {
+    id: "a3",
+    title: 'Shawn Mendes lands in Kosovo for the first time, setting Sunny Hill Festival 2025 on fire with an unforgettable performance!',
+    image: require("../../assets/images/shawn1.jpg"),
+  },
+{
+  id: "a4",
+  title: 'Old Timers Fest 2024 at Tirana showcased classic cars and incredible stories that amazed every visitor!',
+  image: require("../../assets/images/oldtimer.jpg"),
+},
+{
+  id: "a5",
+  title: 'The “Verë N’Dimër” festival returns this year in Prishtina with concerts, fairs, cultural activities, and plenty of surprises for all visitors!',
+  image: require("../../assets/images/ver.jpg"),
+},
+
+];
+
+
+export default function PastEventsScreen() {
+  const router = useRouter();
 
   const renderEvent = ({ item }) => (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() =>
+        router.push({
+          pathname: "/event-details",
+          params: {
+            title: item.title,
+            date: item.date,
+            location: item.location,
+            category: item.category,
+            status: item.status,
+            about: item.about,
+            image: item.image,
+          },
+        })
+      }
+    >
       <ImageBackground
-        source={{ uri: item.image }}
+        source={localImages[item.image] || item.image}
         style={styles.image}
         imageStyle={{ borderRadius: 16 }}
       >
@@ -84,10 +93,14 @@ export default function PastEventsScreen() {
   );
 
   const renderStory = ({ item }) => (
-    <View style={styles.storyCard}>
-      <Image source={{ uri: item.image }} style={styles.storyImage} />
+    <TouchableOpacity style={styles.storyCard}>
+      <ImageBackground
+        source={item.image}
+        style={styles.storyImage}
+        imageStyle={{ borderRadius: 12 }}
+      />
       <Text style={styles.storyTitle}>{item.title}</Text>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -108,7 +121,7 @@ export default function PastEventsScreen() {
           data={pastStories}
           keyExtractor={(item) => item.id}
           renderItem={renderStory}
-          scrollEnabled={false} // për të shmangur scroll brenda FlatList vertikale
+          scrollEnabled={false}
         />
       </ScrollView>
     </SafeAreaView>
@@ -197,7 +210,7 @@ const styles = StyleSheet.create({
   },
   storyTitle: {
     color: "#fff",
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: "600",
     marginBottom: 6,
   },

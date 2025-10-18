@@ -1,0 +1,65 @@
+[
+{
+  "id": "1",
+  "title": "Sunny Hill Festival 2024",
+  "category": "MUSIC",
+  "date": "01 Aug 2025",
+  "location": "Prishtina, Kosovo",
+  "status": "Expired",
+  "image": "sunnyhill2.jpg",
+  "about": "Sunny Hill Festival 2025 was one of the most electrifying music events in the Balkans, bringing together top international stars and beloved local artists. Attendees enjoyed a vibrant mix of genres, spectacular stage performances, immersive light shows, and a lively festival atmosphere. Beyond music, the festival offered cultural exhibitions, food from around the world, and unique experiences that made it a must-attend event for music lovers of all ages."
+}
+,
+{
+  "id": "2",
+  "title": "Dokufest 2025",
+  "category": "FESTIVAL",
+  "date": "10 Jul 2025",
+  "location": "Prizren, Kosovo",
+  "status": "Expired",
+  "image": "dokufest.jpg",
+  "about": "Dokufest 2025 is set to be an unforgettable celebration of cinema and culture in the heart of Prizren. Attendees will experience award-winning documentaries, inspiring short films, engaging panel discussions, and meet filmmakers from around the world. With live music, local cuisine, and vibrant cultural events, this festival is a must-visit for film enthusiasts and anyone looking to immerse themselves in the arts."
+}
+,
+  {
+    "id": "3",
+    "title": "Etno Fest 2025",
+    "category": "Culture & Heritage",
+    "date": "22 Oct 2025",
+    "location": "Kukaj, Kosovo",
+    "status": "Expired",
+    "image": "etnofest.jpg",
+    "about": "Etno Fest 2023 was a unique event showcasing the rich cultural heritage of Kosovo. Over 8 days, the festival featured a variety of activities including exhibitions, workshops, theatrical performances, and concerts, bringing together artists and visitors from across Kosovo and the region. The festival promoted the preservation and development of cultural traditions, contributing to strengthening Kosovo’s cultural identity."
+  },
+{
+  "id": "5",
+  "title": "UNUM Festival 2025",
+  "category": "Electronic Music",
+  "date": "05 Jun 2025",
+  "location": "Shëngjin, Albania",
+  "status": "Expired",
+  "image": "unum.jpg",
+  "about": "UNUM Festival 2025 transformed the stunning Rana e Hedhun beach into a vibrant hub of electronic music from June 5–10. Over 120 hours of continuous music unfolded across three immersive stages: the Beach Stage, Main Stage, and Pine Stage. The lineup featured global icons like Seth Troxler, Sonja Moonear, Dixon, and Ricardo Villalobos, alongside rising stars such as Anitë, Altin Boshnjaku, and Marlon Baleci. Attendees danced from sunrise to sunset, surrounded by the pristine Adriatic coastline and the rhythmic energy of the crowd. UNUM is renowned for its seamless blend of music, nature, and community, offering an unforgettable experience for electronic music enthusiasts."
+},
+{
+  "id": "6",
+  "title": "Festival of Speed - Automotive Fair Albania 2025",
+  "category": "Automotive",
+  "date": "26 Oct 2023",
+  "location": "Tirana, Albania",
+  "status": "Expired",
+  "image": "speed.jpg",
+  "about": "The Festival of Speed- Automotive Fair Albania 2025 transformed Tirana into a thrilling automotive playground from October 26–29. The event featured a diverse showcase of sports cars, motorcycles, retro classics, and historic Formula 1 vehicles. Attendees enjoyed live racing events including motorsport, rally, off-road, hillclimb, go-karting, and cross car competitions. Beyond the adrenaline, the festival highlighted innovations in green mobility, road safety, and sustainable automotive technologies. Set across iconic locations like Mother Teresa Square, Italy Square, and the Palace of Congresses, the festival merged entertainment, culture, and automotive excellence, offering an unforgettable experience for car enthusiasts and the general public alike."
+},
+{
+  "id": "7",
+  "title": "Chopin Piano Festival 2025",
+  "category": "Music",
+  "date": "15 Jul 2025",
+  "location": "Tirana, Albania",
+  "status": "Expired",
+  "image": "chopin.jpg",
+  "about": "The Chopin Piano Festival 2025 celebrated the timeless music of Frédéric Chopin, bringing together world-class pianists and emerging talents from across Europe. Held over five days in elegant venues in Tirana, the festival featured solo recitals, chamber performances, and masterclasses, immersing audiences in Chopin's rich repertoire. Attendees experienced a blend of classical artistry, cultural enrichment, and intimate performances, making it a highlight of Albania’s classical music calendar and a must-attend for piano enthusiasts."
+}
+
+]
