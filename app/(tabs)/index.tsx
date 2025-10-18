@@ -47,12 +47,12 @@ export default function SplashScreen() {
       ])
     ).start();
 
-    // Kalon te discover pas 3 sek
+
     const timer = setTimeout(() => router.replace("/discover"), 3000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Bounce transform
+  
   const bounce = bounceAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.05],
@@ -73,7 +73,7 @@ export default function SplashScreen() {
           },
         ]}
       >
-        EventFinder
+        SpotOn
       </Animated.Text>
 
       <Animated.Text
