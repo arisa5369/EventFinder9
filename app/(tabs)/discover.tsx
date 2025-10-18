@@ -15,57 +15,44 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
+// Event interface updated to match events.json structure
 interface Event {
   id: string;
   name: string;
   location: string;
   date: string;
-  description: string;
-  attendees: string;
-  price: string;
-  organizer: string;
-  image?: { uri: string };
+  description?: string;
+  attendees?: string;
+  price: string | number;
+  organizer?: string;
+  image: string | { uri: string };
 }
 
+// Events from events.json
 const trendingEvents: Event[] = [
   {
     id: "1",
-    name: "Tech Conference 2025",
-    location: "Prishtina",
-    date: "October 16, 2025",
-    description: "The largest technology and AI conference in the region, with speakers from Google, Miami, and Albanian entrepreneurs from around the world. Focus on innovation, digital development, and business opportunities.",
-    attendees: "Over 1000 participants",
-    price: "Tickets: 20-50€",
-    organizer: "TechKos Association",
-    image: { 
-      uri: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=400&h=200&fit=crop" 
-    },
+    name: "Basketball Championship",
+    date: "Nov 20, 2025",
+    location: "Prishtina Arena",
+    price: 15,
+    image: "https://picsum.photos/400/250?1",
   },
   {
     id: "2",
-    name: "Summer Music Festival",
-    location: "Peja",
-    date: "August 1-3, 2025",
-    description: "Summer music festival with international artists like Dua Lipa, Shawn Mendes, and Peggy Gou. Live music, performances, and a festive atmosphere in the Rugova mountains.",
-    attendees: "Over 20,000 visitors",
-    price: "Tickets: 30-100€",
-    organizer: "Sunny Hill Org",
-    image: { 
-      uri: "https://img.freepik.com/premium-photo/crowd-partying-stage-lights-live-concert-summer-music-festival_1168123-55436.jpg?w=400&h=200&fit=crop" 
-    },
+    name: "Rock Festival",
+    date: "Dec 5, 2025",
+    location: "Skanderbeg Square",
+    price: 25,
+    image: "https://picsum.photos/400/250?2",
   },
   {
     id: "3",
-    name: "Art Expo",
-    location: "Gjakova",
-    date: "Full schedule in August 2025",
-    description: "Contemporary art exhibition with installations, paintings, and international workshops. Includes artists from Kosovo and the region, with a focus on urban art and cultural heritage.",
-    attendees: "Over 500 visitors",
-    price: "Entry free / Workshop tickets: 10€",
-    organizer: "ArtGjakova Gallery",
-    image: { 
-      uri: "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=400&h=200&fit=crop" 
-    },
+    name: "Jazz Night",
+    date: "Jan 10, 2026",
+    location: "Peja Cultural Hall",
+    price: 20,
+    image: "https://picsum.photos/400/250?3",
   },
 ];
 
@@ -127,8 +114,15 @@ export default function Discover({ navigation }: { navigation?: any }) {
       const savedEventsJson = await AsyncStorage.getItem("savedEvents");
       let savedEvents: Event[] = savedEventsJson ? JSON.parse(savedEventsJson) : [];
 
+      // Normalize image field for saving
+      const eventToSave = {
+        ...selectedEvent,
+        image: typeof selectedEvent.image === "string" ? { uri: selectedEvent.image } : selectedEvent.image,
+        price: typeof selectedEvent.price === "number" ? `${selectedEvent.price}€` : selectedEvent.price,
+      };
+
       if (!savedEvents.some((e) => e.id === selectedEvent.id)) {
-        savedEvents = [...savedEvents, selectedEvent];
+        savedEvents = [...savedEvents, eventToSave];
         await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
         setSavedEventIds([...savedEventIds, selectedEvent.id]);
         alert("Event saved successfully!");
@@ -162,7 +156,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
       <Text style={styles.subheader}>Events</Text>
       <FlatList
         data={filteredEvents}
-        keyExtractor={(item) => item.id || `fallback-${Math.random()}`}
+        keyExtractor={(item) => item.id}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -177,9 +171,15 @@ export default function Discover({ navigation }: { navigation?: any }) {
             <Text style={styles.name}>{item.name}</Text>
             <Text style={styles.date}>{item.date}</Text>
             <Text style={styles.location}>{item.location}</Text>
-            <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+            {item.description && (
+              <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+            )}
             <Image
-              source={item.image || { uri: "https://via.placeholder.com/300x150.png?text=No+Image" }}
+              source={
+                typeof item.image === "string"
+                  ? { uri: item.image }
+                  : item.image || { uri: "https://via.placeholder.com/300x150.png?text=No+Image" }
+              }
               style={styles.eventImage}
             />
           </TouchableOpacity>
@@ -238,7 +238,11 @@ export default function Discover({ navigation }: { navigation?: any }) {
             {selectedEvent ? (
               <>
                 <Image
-                  source={selectedEvent.image || { uri: "https://via.placeholder.com/300x150.png?text=No+Image" }}
+                  source={
+                    typeof selectedEvent.image === "string"
+                      ? { uri: selectedEvent.image }
+                      : selectedEvent.image || { uri: "https://via.placeholder.com/300x150.png?text=No+Image" }
+                  }
                   style={styles.heroImage}
                 />
                 <Text style={styles.modalHeader}>{selectedEvent.name}</Text>
@@ -250,20 +254,30 @@ export default function Discover({ navigation }: { navigation?: any }) {
                   <Ionicons name="location-outline" size={24} color="#666" style={styles.icon} />
                   <Text style={styles.infoText}>Location: {selectedEvent.location}</Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="people-outline" size={24} color="#666" style={styles.icon} />
-                  <Text style={styles.infoText}>Participants: {selectedEvent.attendees}</Text>
-                </View>
+                {selectedEvent.attendees && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="people-outline" size={24} color="#666" style={styles.icon} />
+                    <Text style={styles.infoText}>Participants: {selectedEvent.attendees}</Text>
+                  </View>
+                )}
                 <View style={styles.infoRow}>
                   <Ionicons name="cash-outline" size={24} color="#00b67f" style={styles.icon} />
-                  <Text style={styles.infoText}>Price: {selectedEvent.price}</Text>
+                  <Text style={styles.infoText}>
+                    Price: {typeof selectedEvent.price === "number" ? `${selectedEvent.price}€` : selectedEvent.price}
+                  </Text>
                 </View>
-                <View style={styles.infoRow}>
-                  <Ionicons name="person-outline" size={24} color="#666" style={styles.icon} />
-                  <Text style={styles.infoText}>Organized by: {selectedEvent.organizer}</Text>
-                </View>
-                <Text style={styles.descriptionTitle}>Description:</Text>
-                <Text style={styles.description}>{selectedEvent.description}</Text>
+                {selectedEvent.organizer && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="person-outline" size={24} color="#666" style={styles.icon} />
+                    <Text style={styles.infoText}>Organized by: {selectedEvent.organizer}</Text>
+                  </View>
+                )}
+                {selectedEvent.description && (
+                  <>
+                    <Text style={styles.descriptionTitle}>Description:</Text>
+                    <Text style={styles.description}>{selectedEvent.description}</Text>
+                  </>
+                )}
               </>
             ) : (
               <Text>Event not found!</Text>
