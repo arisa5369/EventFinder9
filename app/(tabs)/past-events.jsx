@@ -1,16 +1,16 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import {
-    Dimensions,
-    FlatList,
-    Image,
-    ImageBackground,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Dimensions,
+  FlatList,
+  Image,
+  ImageBackground,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const { width } = Dimensions.get("window");
@@ -64,7 +64,7 @@ export default function PastEventsScreen() {
     },
   ]);
 
-  const renderEvent = ({ item }: any) => (
+  const renderEvent = ({ item }) => (
     <TouchableOpacity style={styles.card}>
       <ImageBackground
         source={{ uri: item.image }}
@@ -75,7 +75,7 @@ export default function PastEventsScreen() {
         <View style={styles.textContainer}>
           <Text style={styles.category}>{item.category}</Text>
           <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.details}> {item.date}</Text>
+          <Text style={styles.details}>{item.date}</Text>
           <Text style={styles.details}>{item.location}</Text>
           <Text style={styles.status}>{item.status}</Text>
         </View>
@@ -83,7 +83,7 @@ export default function PastEventsScreen() {
     </TouchableOpacity>
   );
 
-  const renderStory = ({ item }: any) => (
+  const renderStory = ({ item }) => (
     <View style={styles.storyCard}>
       <Image source={{ uri: item.image }} style={styles.storyImage} />
       <Text style={styles.storyTitle}>{item.title}</Text>
@@ -94,7 +94,6 @@ export default function PastEventsScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" />
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* SECTION 1: Horizontal Top Events */}
         <Text style={styles.header}>Top Events in the Past</Text>
         <FlatList
           data={events}
@@ -104,13 +103,12 @@ export default function PastEventsScreen() {
           showsHorizontalScrollIndicator={false}
         />
 
-        {/* SECTION 2: Vertical Past Stories */}
         <Text style={styles.subHeader}>More Past Event Highlights</Text>
         <FlatList
           data={pastStories}
           keyExtractor={(item) => item.id}
           renderItem={renderStory}
-          scrollEnabled={false}
+          scrollEnabled={false} // për të shmangur scroll brenda FlatList vertikale
         />
       </ScrollView>
     </SafeAreaView>
@@ -122,7 +120,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#000",
     paddingTop: 20,
-    paddingLeft: 16,
+    paddingHorizontal: 16,
   },
   header: {
     fontSize: 24,
@@ -178,8 +176,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 6,
   },
-
-  // SECOND SECTION (Stories)
   subHeader: {
     fontSize: 22,
     fontWeight: "700",
@@ -194,17 +190,15 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
   storyImage: {
-    width: "92%",
+    width: "100%",
     height: 200,
     borderRadius: 12,
-    alignSelf: "center",
     marginBottom: 8,
   },
   storyTitle: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "600",
-    marginLeft: 8,
     marginBottom: 6,
   },
 });
