@@ -14,6 +14,21 @@ import {
   RefreshControl,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import events from "../event/events.json"; 
+
+interface RawEvent {
+  id: string;
+  name: string;
+  location: string;
+  date: string;
+  description?: string;
+  attendees?: number;
+  price: number;
+  organized_by: string;
+  image: string;
+  duration?: string;
+  status?: string;
+}
 
 
 interface Event {
@@ -22,39 +37,13 @@ interface Event {
   location: string;
   date: string;
   description?: string;
-  attendees?: string;
+  attendees?: number;
   price: string | number;
   organizer?: string;
   image: string | { uri: string };
+  duration?: string;
+  status?: string;
 }
-
-
-const trendingEvents: Event[] = [
-  {
-    id: "1",
-    name: "Basketball Championship",
-    date: "Nov 20, 2025",
-    location: "Prishtina Arena",
-    price: 15,
-    image: "https://picsum.photos/400/250?1",
-  },
-  {
-    id: "2",
-    name: "Rock Festival",
-    date: "Dec 5, 2025",
-    location: "Skanderbeg Square",
-    price: 25,
-    image: "https://picsum.photos/400/250?2",
-  },
-  {
-    id: "3",
-    name: "Jazz Night",
-    date: "Jan 10, 2026",
-    location: "Peja Cultural Hall",
-    price: 20,
-    image: "https://picsum.photos/400/250?3",
-  },
-];
 
 export default function Discover({ navigation }: { navigation?: any }) {
   const [modalVisible, setModalVisible] = useState(false);
@@ -88,7 +77,12 @@ export default function Discover({ navigation }: { navigation?: any }) {
     setRefreshing(false);
   };
 
-  const filteredEvents = trendingEvents.filter((event) => {
+  
+  const filteredEvents: Event[] = (events as RawEvent[]).map((event) => ({
+    ...event,
+    organizer: event.organized_by, 
+    image: { uri: event.image }, 
+  })).filter((event) => {
     const nameMatch = searchQuery
       ? event.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
       : true;
@@ -98,8 +92,12 @@ export default function Discover({ navigation }: { navigation?: any }) {
     return nameMatch && locationMatch;
   });
 
-  const openDetailsModal = (event: Event) => {
-    setSelectedEvent(event);
+  const openDetailsModal = (event: RawEvent) => {
+    setSelectedEvent({
+      ...event,
+      organizer: event.organized_by, 
+      image: { uri: event.image }, 
+    });
     setDetailsModalVisible(true);
     loadSavedEvents();
   };
@@ -115,21 +113,18 @@ export default function Discover({ navigation }: { navigation?: any }) {
       let savedEvents: Event[] = savedEventsJson ? JSON.parse(savedEventsJson) : [];
       const isSaved = savedEvents.some((e) => e.id === selectedEvent.id);
 
-      
-      const eventToSave = {
+      const eventToSave: Event = {
         ...selectedEvent,
         image: typeof selectedEvent.image === "string" ? { uri: selectedEvent.image } : selectedEvent.image,
         price: typeof selectedEvent.price === "number" ? `${selectedEvent.price}€` : selectedEvent.price,
       };
 
       if (!isSaved) {
-        
         savedEvents = [...savedEvents, eventToSave];
         await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
         setSavedEventIds([...savedEventIds, selectedEvent.id]);
         alert("Event saved successfully!");
       } else {
-        
         savedEvents = savedEvents.filter((e) => e.id !== selectedEvent.id);
         await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
         setSavedEventIds(savedEventIds.filter((id) => id !== selectedEvent.id));
@@ -159,7 +154,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
         </View>
       </TouchableOpacity>
       <Text style={styles.subheader}>Events</Text>
-      <FlatList
+      <FlatList<Event>
         data={filteredEvents}
         keyExtractor={(item) => item.id}
         refreshControl={
@@ -168,9 +163,9 @@ export default function Discover({ navigation }: { navigation?: any }) {
             onRefresh={handleRefresh}
           />
         }
-        renderItem={({ item }) => (
+        renderItem={({ item }: { item: Event }) => (
           <TouchableOpacity
-            onPress={() => openDetailsModal(item)}
+            onPress={() => openDetailsModal(item as unknown as RawEvent)} // Cast to RawEvent for openDetailsModal
             style={styles.card}
             activeOpacity={0.8}
           >
@@ -284,7 +279,9 @@ export default function Discover({ navigation }: { navigation?: any }) {
                 {selectedEvent.attendees && (
                   <View style={styles.infoRow}>
                     <Ionicons name="people-outline" size={24} color="#666" style={styles.icon} />
-                    <Text style={styles.infoText}>Participants: {selectedEvent.attendees}</Text>
+                    <Text style={styles.infoText}>
+                      Attendees: {selectedEvent.attendees.toLocaleString()}
+                    </Text>
                   </View>
                 )}
                 <View style={styles.infoRow}>
@@ -297,6 +294,18 @@ export default function Discover({ navigation }: { navigation?: any }) {
                   <View style={styles.infoRow}>
                     <Ionicons name="person-outline" size={24} color="#666" style={styles.icon} />
                     <Text style={styles.infoText}>Organized by: {selectedEvent.organizer}</Text>
+                  </View>
+                )}
+                {selectedEvent.duration && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="time-outline" size={24} color="#666" style={styles.icon} />
+                    <Text style={styles.infoText}>Duration: {selectedEvent.duration}</Text>
+                  </View>
+                )}
+                {selectedEvent.status && (
+                  <View style={styles.infoRow}>
+                    <Ionicons name="information-circle-outline" size={24} color="#666" style={styles.icon} />
+                    <Text style={styles.infoText}>Status: {selectedEvent.status}</Text>
                   </View>
                 )}
                 <TouchableOpacity onPress={toggleSaveEvent} style={styles.saveContainer} activeOpacity={0.8}>
@@ -336,7 +345,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2f4f8",
   },
   header: {
-    fontSize: 36, 
+    fontSize: 36,
     fontWeight: "bold",
     marginBottom: 24,
     alignSelf: "flex-start",
