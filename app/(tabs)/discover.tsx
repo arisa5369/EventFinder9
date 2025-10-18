@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-// Event interface updated to match events.json structure
+
 interface Event {
   id: string;
   name: string;
@@ -28,7 +28,7 @@ interface Event {
   image: string | { uri: string };
 }
 
-// Events from events.json
+
 const trendingEvents: Event[] = [
   {
     id: "1",
@@ -104,36 +104,40 @@ export default function Discover({ navigation }: { navigation?: any }) {
     loadSavedEvents();
   };
 
-  const saveEvent = async () => {
+  const toggleSaveEvent = async () => {
     if (!selectedEvent || !selectedEvent.id) {
-      alert("Error: Event cannot be saved.");
+      alert("Error: Event cannot be toggled.");
       return;
     }
 
     try {
       const savedEventsJson = await AsyncStorage.getItem("savedEvents");
       let savedEvents: Event[] = savedEventsJson ? JSON.parse(savedEventsJson) : [];
+      const isSaved = savedEvents.some((e) => e.id === selectedEvent.id);
 
-      // Normalize image field for saving
+      
       const eventToSave = {
         ...selectedEvent,
         image: typeof selectedEvent.image === "string" ? { uri: selectedEvent.image } : selectedEvent.image,
         price: typeof selectedEvent.price === "number" ? `${selectedEvent.price}€` : selectedEvent.price,
       };
 
-      if (!savedEvents.some((e) => e.id === selectedEvent.id)) {
+      if (!isSaved) {
+        
         savedEvents = [...savedEvents, eventToSave];
         await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
         setSavedEventIds([...savedEventIds, selectedEvent.id]);
         alert("Event saved successfully!");
       } else {
-        alert("Event is already saved!");
+        
+        savedEvents = savedEvents.filter((e) => e.id !== selectedEvent.id);
+        await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
+        setSavedEventIds(savedEventIds.filter((id) => id !== selectedEvent.id));
+        alert("Event unsaved successfully!");
       }
-
-      setDetailsModalVisible(false);
     } catch (error) {
-      console.error("Error saving event:", error);
-      alert("An error occurred while saving.");
+      console.error("Error toggling event:", error);
+      alert("An error occurred while toggling the event.");
     }
   };
 
@@ -143,6 +147,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
         style={styles.inputTouchable}
+        activeOpacity={0.8}
       >
         <View style={styles.searchRow}>
           <Ionicons name="search" size={20} color="#999" style={{ marginRight: 8 }} />
@@ -167,13 +172,8 @@ export default function Discover({ navigation }: { navigation?: any }) {
           <TouchableOpacity
             onPress={() => openDetailsModal(item)}
             style={styles.card}
+            activeOpacity={0.8}
           >
-            <Text style={styles.name}>{item.name}</Text>
-            <Text style={styles.date}>{item.date}</Text>
-            <Text style={styles.location}>{item.location}</Text>
-            {item.description && (
-              <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
-            )}
             <Image
               source={
                 typeof item.image === "string"
@@ -182,6 +182,26 @@ export default function Discover({ navigation }: { navigation?: any }) {
               }
               style={styles.eventImage}
             />
+            <View style={styles.cardContent}>
+              <Text style={styles.name}>{item.name}</Text>
+              <View style={styles.infoRowCard}>
+                <Ionicons name="calendar-outline" size={16} color="#666" style={styles.smallIcon} />
+                <Text style={styles.date}>{item.date}</Text>
+              </View>
+              <View style={styles.infoRowCard}>
+                <Ionicons name="location-outline" size={16} color="#666" style={styles.smallIcon} />
+                <Text style={styles.location}>{item.location}</Text>
+              </View>
+              <View style={styles.infoRowCard}>
+                <Ionicons name="cash-outline" size={16} color="#00b67f" style={styles.smallIcon} />
+                <Text style={styles.priceText}>
+                  {typeof item.price === "number" ? `${item.price}€` : item.price}
+                </Text>
+              </View>
+              {item.description && (
+                <Text style={styles.description} numberOfLines={2}>{item.description}</Text>
+              )}
+            </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={() => (
@@ -193,7 +213,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
           <View style={styles.modalContent}>
             <View style={styles.modalHeaderRow}>
               <Text style={styles.modalHeader}>Search Events</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
+              <TouchableOpacity onPress={() => setModalVisible(false)} activeOpacity={0.8}>
                 <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
@@ -219,12 +239,14 @@ export default function Discover({ navigation }: { navigation?: any }) {
               <TouchableOpacity
                 style={styles.customButton}
                 onPress={() => setModalVisible(false)}
+                activeOpacity={0.8}
               >
                 <Text style={styles.buttonText}>Close</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.customButton, styles.searchButton]}
                 onPress={() => setModalVisible(false)}
+                activeOpacity={0.8}
               >
                 <Text style={styles.buttonText}>Search</Text>
               </TouchableOpacity>
@@ -237,6 +259,12 @@ export default function Discover({ navigation }: { navigation?: any }) {
           <ScrollView style={styles.modalContent}>
             {selectedEvent ? (
               <>
+                <View style={styles.modalHeaderRow}>
+                  <Text style={styles.modalHeader}>{selectedEvent.name}</Text>
+                  <TouchableOpacity onPress={() => setDetailsModalVisible(false)} activeOpacity={0.8}>
+                    <Ionicons name="close" size={24} color="#666" />
+                  </TouchableOpacity>
+                </View>
                 <Image
                   source={
                     typeof selectedEvent.image === "string"
@@ -245,7 +273,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
                   }
                   style={styles.heroImage}
                 />
-                <Text style={styles.modalHeader}>{selectedEvent.name}</Text>
                 <View style={styles.infoRow}>
                   <Ionicons name="calendar-outline" size={24} color="#666" style={styles.icon} />
                   <Text style={styles.infoText}>Date: {selectedEvent.date}</Text>
@@ -272,6 +299,15 @@ export default function Discover({ navigation }: { navigation?: any }) {
                     <Text style={styles.infoText}>Organized by: {selectedEvent.organizer}</Text>
                   </View>
                 )}
+                <TouchableOpacity onPress={toggleSaveEvent} style={styles.saveContainer} activeOpacity={0.8}>
+                  <Ionicons
+                    name={savedEventIds.includes(selectedEvent.id) ? "heart" : "heart-outline"}
+                    size={30}
+                    color={savedEventIds.includes(selectedEvent.id) ? "#FF0000" : "#666"}
+                    style={styles.saveIcon}
+                  />
+                  <Text style={styles.saveText}>save</Text>
+                </TouchableOpacity>
                 {selectedEvent.description && (
                   <>
                     <Text style={styles.descriptionTitle}>Description:</Text>
@@ -284,7 +320,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
             )}
           </ScrollView>
           <View style={styles.modalButtons}>
-            <Button title="Save" onPress={saveEvent} color="#4CAF50" />
             <Button title="Close" onPress={() => setDetailsModalVisible(false)} />
           </View>
         </View>
@@ -301,24 +336,27 @@ const styles = StyleSheet.create({
     backgroundColor: "#f2f4f8",
   },
   header: {
-    fontSize: 24,
+    fontSize: 36, 
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 24,
     alignSelf: "flex-start",
-    color: "#222",
+    color: "#1a1a1a",
     letterSpacing: 1,
+    textShadowColor: "rgba(0, 0, 0, 0.15)",
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   inputTouchable: {
     backgroundColor: "#ffffff",
-    borderRadius: 30,
+    borderRadius: 32,
     paddingVertical: 16,
     paddingHorizontal: 20,
     marginBottom: 25,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
   },
   searchText: {
     color: "#999",
@@ -326,44 +364,63 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
   },
   subheader: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "600",
-    marginBottom: 10,
-    marginTop: 10,
+    marginBottom: 12,
+    marginTop: 12,
     color: "#333",
   },
   card: {
-    padding: 18,
     backgroundColor: "#ffffff",
-    borderRadius: 15,
-    marginBottom: 12,
+    borderRadius: 16,
+    marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
     elevation: 3,
+    overflow: "hidden",
+  },
+  eventImage: {
+    width: "100%",
+    height: 160,
+    resizeMode: "cover",
+  },
+  cardContent: {
+    padding: 16,
   },
   name: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: 18,
+    fontWeight: "bold",
     color: "#222",
+    marginBottom: 8,
+  },
+  infoRowCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  smallIcon: {
+    marginRight: 6,
   },
   date: {
     fontSize: 14,
     color: "#666",
-    marginTop: 2,
-    fontStyle: "italic",
   },
   location: {
     fontSize: 14,
-    color: "#1f1d1d",
-    marginTop: 4,
+    color: "#666",
+  },
+  priceText: {
+    fontSize: 14,
+    color: "#00b67f",
+    fontWeight: "600",
   },
   description: {
-    fontSize: 12,
+    fontSize: 13,
     color: "#555",
-    marginTop: 6,
-    lineHeight: 16,
+    marginTop: 8,
+    lineHeight: 18,
   },
   modalContainer: {
     flex: 1,
@@ -374,21 +431,22 @@ const styles = StyleSheet.create({
   },
   modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 15,
+    borderRadius: 16,
     padding: 20,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
     width: "90%",
   },
   modalHeader: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 15,
+    marginBottom: 16,
     color: "#222",
     textAlign: "center",
+    flex: 1,
   },
   modalHeaderRow: {
     flexDirection: "row",
@@ -403,8 +461,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     borderColor: "#ddd",
-    paddingHorizontal: 10,
-    marginBottom: 15,
+    paddingHorizontal: 12,
+    marginBottom: 16,
   },
   inputIcon: {
     marginRight: 8,
@@ -414,20 +472,13 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
   },
-  eventImage: {
-    width: "100%",
-    height: 150,
-    borderRadius: 12,
-    marginTop: 10,
-    resizeMode: "cover",
-  },
   heroImage: {
     width: "100%",
     height: 200,
-    borderTopLeftRadius: 15,
-    borderTopRightRadius: 15,
+    borderRadius: 12,
     resizeMode: "cover",
     alignSelf: "center",
+    marginBottom: 16,
   },
   searchRow: {
     flexDirection: "row",
@@ -436,7 +487,7 @@ const styles = StyleSheet.create({
   modalButtons: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 10,
+    marginTop: 12,
   },
   customButton: {
     backgroundColor: "#eee",
@@ -444,7 +495,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 20,
     flex: 1,
-    marginHorizontal: 5,
+    marginHorizontal: 6,
     alignItems: "center",
   },
   searchButton: {
@@ -477,8 +528,21 @@ const styles = StyleSheet.create({
   descriptionTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    marginTop: 15,
-    marginBottom: 10,
+    marginTop: 16,
+    marginBottom: 8,
     color: "#222",
+  },
+  saveContainer: {
+    alignItems: "center",
+    marginTop: 16,
+    marginBottom: 16,
+  },
+  saveIcon: {
+    marginBottom: 4,
+  },
+  saveText: {
+    fontSize: 14,
+    color: "#666",
+    textTransform: "lowercase",
   },
 });
