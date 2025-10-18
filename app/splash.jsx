@@ -47,12 +47,12 @@ export default function SplashScreen() {
       ])
     ).start();
 
-
-    const timer = setTimeout(() => router.replace("/discover"), 3000);
+    const timer = setTimeout(() => {
+      router.replace("/(tabs)/discover");
+    }, 3000);
     return () => clearTimeout(timer);
   }, []);
 
-  
   const bounce = bounceAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.05],
@@ -107,7 +107,6 @@ const styles = StyleSheet.create({
     fontSize: 44,
     fontWeight: "bold",
     letterSpacing: 2,
-    textTransform: "uppercase",
   },
   subtitle: {
     color: "#aaa",
