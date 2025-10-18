@@ -170,11 +170,30 @@ export default function AddEventScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
-  scroll: { paddingHorizontal: 20 },
-  header: { fontSize: 22, fontWeight: "700", color: "#fff", marginTop: 10 },
-  subheader: { color: "#aaa", fontSize: 15, marginBottom: 20 },
-  label: { fontSize: 16, fontWeight: "600", color: "#fff", marginBottom: 10 },
+  container: {
+     flex: 1, 
+     backgroundColor: "#000" 
+    },
+  scroll: {
+     paddingHorizontal: 20 
+    },
+  header: {
+     fontSize: 22, 
+     fontWeight: "700", 
+     color: "#fff", 
+     marginTop: 10 
+    },
+  subheader: {
+     color: "#aaa", 
+     fontSize: 15,
+      marginBottom: 20 
+    },
+  label: {
+     fontSize: 16,
+     fontWeight: "600", 
+     color: "#fff", 
+     marginBottom: 10 
+    },
   chipContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -189,9 +208,17 @@ const styles = StyleSheet.create({
     marginRight: 8,
     marginBottom: 8,
   },
-  chipSelected: { backgroundColor: "#4E73DF" },
-  chipText: { fontSize: 14, color: "#fff" },
-  chipTextSelected: { color: "#fff", fontWeight: "600" },
+  chipSelected: {
+     backgroundColor: "#4E73DF" 
+    },
+  chipText: {
+     fontSize: 14,
+      color: "#fff"
+     },
+  chipTextSelected: {
+     color: "#fff", 
+     fontWeight: "600"
+     },
   input: {
     backgroundColor: "#111",
     borderRadius: 10,
@@ -205,8 +232,15 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 6,
   },
-  dateButtonText: { fontSize: 15, color: "#fff" },
-  timeRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10 },
+  dateButtonText: { 
+    fontSize: 15,
+     color: "#fff"
+     },
+  timeRow: { 
+    flexDirection: "row", 
+    justifyContent: "space-between", 
+    marginTop: 10 
+  },
   timeButton: {
     flex: 1,
     backgroundColor: "#111",
@@ -228,7 +262,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginHorizontal: 4,
   },
-  locationButtonSelected: { backgroundColor: "#4E73DF" },
-  locationText: { color: "#fff", fontWeight: "500" },
-  locationTextSelected: { color: "#fff", fontWeight: "700" },
+  locationButtonSelected: {
+     backgroundColor: "#4E73DF" 
+    },
+  locationText: { 
+    color: "#fff",
+     fontWeight: "500" 
+    },
+  locationTextSelected: {
+     color: "#fff",
+      fontWeight: "700" 
+    },
 });
