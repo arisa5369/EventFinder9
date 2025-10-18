@@ -8,11 +8,11 @@ import {
     View,
 } from "react-native";
 
-export default function RegisterTickets({ event }) {
+export default function RegisterTickets({ event, onClose }) {
   const [quantity, setQuantity] = useState(1);
   const [ticketType, setTicketType] = useState("General Admission");
   const [showBilling, setShowBilling] = useState(false);
-  const [showSelectModal, setShowSelectModal] = useState(true); 
+  const [showSelectModal, setShowSelectModal] = useState(true);
 
   const [name, setName] = useState("");
   const [surname, setSurname] = useState("");
@@ -32,6 +32,13 @@ export default function RegisterTickets({ event }) {
       )}\n\nThank you, ${name}!`
     );
     setShowBilling(false);
+    onClose(); 
+  };
+
+  const handleClose = () => {
+    setShowSelectModal(false);
+    setShowBilling(false);
+    onClose(); 
   };
 
   return (
@@ -41,17 +48,17 @@ export default function RegisterTickets({ event }) {
         visible={showSelectModal}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowSelectModal(false)} 
+        onRequestClose={handleClose}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
-          activeOpacity={1} 
-          onPress={() => setShowSelectModal(false)} 
+          activeOpacity={1}
+          onPress={handleClose}
         >
           <View style={styles.modalBox}>
             <TouchableOpacity
               style={styles.closeBtn}
-              onPress={() => setShowSelectModal(false)} 
+              onPress={handleClose} 
             >
               <Text style={styles.closeText}>✕</Text>
             </TouchableOpacity>
@@ -120,12 +127,12 @@ export default function RegisterTickets({ event }) {
         visible={showBilling}
         animationType="slide"
         transparent={true}
-        onRequestClose={() => setShowBilling(false)}
+        onRequestClose={handleClose}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={() => setShowBilling(false)}
+          onPress={handleClose} 
         >
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Billing Information</Text>
@@ -133,7 +140,7 @@ export default function RegisterTickets({ event }) {
             <Text style={styles.label}>Name</Text>
             <TextInput
               placeholder="Enter your name"
-              placeholderTextColor="#aaa"
+              placeholderTextColor="#666"
               style={styles.input}
               value={name}
               onChangeText={setName}
@@ -142,7 +149,7 @@ export default function RegisterTickets({ event }) {
             <Text style={styles.label}>Surname</Text>
             <TextInput
               placeholder="Enter your surname"
-              placeholderTextColor="#aaa"
+              placeholderTextColor="#666"
               style={styles.input}
               value={surname}
               onChangeText={setSurname}
@@ -151,7 +158,7 @@ export default function RegisterTickets({ event }) {
             <Text style={styles.label}>Email</Text>
             <TextInput
               placeholder="Enter your email"
-              placeholderTextColor="#aaa"
+              placeholderTextColor="#666"
               style={styles.input}
               value={email}
               onChangeText={setEmail}
@@ -166,16 +173,13 @@ export default function RegisterTickets({ event }) {
               💰 Total: €{total.toFixed(2)}
             </Text>
 
-            <TouchableOpacity
-              style={styles.placeBtn}
-              onPress={handlePlaceOrder}
-            >
+            <TouchableOpacity style={styles.placeBtn} onPress={handlePlaceOrder}>
               <Text style={styles.placeText}>Place Order</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.cancelBtn}
-              onPress={() => setShowBilling(false)}
+              onPress={handleClose} 
             >
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
@@ -192,28 +196,28 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(255, 255, 255, 0.6)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalBox: {
     width: "90%",
-    backgroundColor: "#111",
+    backgroundColor: "#fff",
     borderRadius: 10,
     padding: 20,
     position: "relative",
     maxHeight: "80%",
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#ccc",
   },
   closeBtn: {
     position: "absolute",
     top: 10,
     right: 10,
-    padding: 8, 
-    backgroundColor: "#f44336",
+    padding: 8,
+    backgroundColor: "#000",
     borderRadius: 10,
-    zIndex: 10, 
+    zIndex: 10,
   },
   closeText: {
     color: "#fff",
@@ -221,14 +225,14 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   modalTitle: {
-    color: "#fff",
+    color: "#000",
     fontSize: 20,
     fontWeight: "700",
     marginBottom: 20,
     textAlign: "center",
   },
   label: {
-    color: "#fff",
+    color: "#000",
     fontSize: 16,
     fontWeight: "600",
     marginTop: 10,
@@ -239,18 +243,18 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   ticketButton: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#f0f0f0",
     borderRadius: 20,
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#ccc",
   },
   ticketSelected: {
     backgroundColor: "#4E73DF",
     borderColor: "#4E73DF",
   },
-  ticketText: { color: "#fff", fontSize: 14 },
+  ticketText: { color: "#000", fontSize: 14 },
   ticketTextSelected: { color: "#fff", fontWeight: "600" },
   counter: {
     flexDirection: "row",
@@ -259,17 +263,17 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   btn: {
-    backgroundColor: "#1a1a1a",
+    backgroundColor: "#f0f0f0",
     borderRadius: 10,
     padding: 12,
     marginHorizontal: 15,
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#ccc",
   },
-  btnText: { color: "#fff", fontSize: 20, fontWeight: "bold" },
-  quantity: { color: "#fff", fontSize: 24, marginHorizontal: 10 },
+  btnText: { color: "#000", fontSize: 20, fontWeight: "bold" },
+  quantity: { color: "#000", fontSize: 24, marginHorizontal: 10 },
   total: {
-    color: "#fff",
+    color: "#000",
     fontSize: 18,
     marginBottom: 20,
     textAlign: "center",
@@ -286,16 +290,16 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
   },
   input: {
-    backgroundColor: "#111",
-    color: "#fff",
+    backgroundColor: "#f9f9f9",
+    color: "#000",
     borderRadius: 10,
     padding: 14,
     marginTop: 5,
     borderWidth: 1,
-    borderColor: "#444",
+    borderColor: "#ccc",
   },
   summary: {
-    color: "#aaa",
+    color: "#333",
     textAlign: "center",
     marginVertical: 20,
     fontSize: 15,
@@ -311,5 +315,5 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignItems: "center",
   },
-  cancelText: { color: "#f44336", fontSize: 16 },
+  cancelText: { color: "#000", fontSize: 16 },
 });
