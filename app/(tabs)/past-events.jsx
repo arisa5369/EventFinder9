@@ -131,22 +131,14 @@ export default function PastEventsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-<<<<<<< HEAD
     backgroundColor: "#ffffffff",
-=======
-    backgroundColor: "#ffffff",
->>>>>>> test
     paddingTop: 20,
     paddingHorizontal: 16,
   },
   header: {
     fontSize: 24,
     fontWeight: "700",
-<<<<<<< HEAD
     color: "#000000ff",
-=======
-    color: "#1a1a1a",
->>>>>>> test
     marginBottom: 16,
     letterSpacing: 0.5,
   },
@@ -200,21 +192,14 @@ const styles = StyleSheet.create({
   subHeader: {
     fontSize: 22,
     fontWeight: "700",
-<<<<<<< HEAD
     color: "#000000ff",
-=======
-    color: "#1a1a1a",
->>>>>>> test
     marginTop: 28,
     marginBottom: 14,
   },
   storyCard: {
     marginBottom: 24,
-<<<<<<< HEAD
+
     borderBottomColor: "#e0dbdbff",
-=======
-    borderBottomColor: "#e5e5e5",
->>>>>>> test
     borderBottomWidth: 1,
     paddingBottom: 12,
   },
@@ -225,13 +210,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   storyTitle: {
-<<<<<<< HEAD
-    color: "#000000ff",
-    fontSize: 12,
-=======
     color: "#333333",
     fontSize: 13,
->>>>>>> test
     fontWeight: "600",
     marginBottom: 6,
   },
