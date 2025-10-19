@@ -1,55 +1,18 @@
-<<<<<<< HEAD
 # EvenetFinder9
 Event Finder 
-=======
-# Welcome to your Expo app 👋
+SpotOn është një aplikacion mobil i krijuar për të ndihmuar përdoruesit të zbulojnë, ruajnë dhe organizojnë evente në mënyrë të lehtë dhe interaktive dhe ofron një eksperiencë moderne, dhe të shpejtë për përdoruesit.
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+## Funksionalitetet kryesore
+Discover Events: Shiko dhe eksploro evente të ndryshme me detaje për datën, lokacionin, çmimin dhe përshkrimin.  
 
-## Get started
+Saved Events: Ruaj eventet që të pëlqejnë dhe kthehu më vonë për t’i parë ose për t’i menaxhuar.  
 
-1. Install dependencies
+Account Management: Ndrysho informacionin e profilit dhe menaxho të dhënat e llogarisë.  
 
-   ```bash
-   npm install
-   ```
+Settings: Cakto preferencat e aplikacionit, si notifikimet, shërbimet e lokacionit, dhe informacionin për mbështetje.  
 
-2. Start the app
+Create Event: Krijo evente të reja duke zgjedhur tipin, datën, lokacionin, çmimin dhe përshkrimin.  
 
-   ```bash
-   npx expo start
-   ```
+Tickets & Billing: Zgjidh bileta të ndryshme (General/VIP), vendos sasinë dhe plotëso informacionin e faturimit për të kryer porosinë.  
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
->>>>>>> 50cad69 (d)
+Past Events: Shiko eventet më të mira nga e kaluara dhe highlights me lajme për eventet e mbajtura.
