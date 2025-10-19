@@ -29,6 +29,7 @@ function CustomDrawerContent() {
             flexDirection: "row",
             alignItems: "center",
             paddingVertical: 14,
+            paddingTop:20, 
             paddingHorizontal: 20,
           }}
         >

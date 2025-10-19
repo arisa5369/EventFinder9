@@ -130,18 +130,21 @@ export default function PastEventsScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#ffffffff",
-    paddingTop: 20,
-    paddingHorizontal: 16,
-  },
+  flex: 1,
+  backgroundColor: "#ffffffff",
+ padding: 20,
+},
+
   header: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#000000ff",
-    marginBottom: 16,
-    letterSpacing: 0.5,
-  },
+  fontSize: 24,
+  fontWeight: "700",
+  color: "#000000ff",
+  marginBottom: 16,
+  letterSpacing: 0.5,
+  marginTop: 10,      
+  marginLeft: 12,     
+},
+
   card: {
     width: width * 0.75,
     marginRight: 18,
