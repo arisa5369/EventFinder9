@@ -39,22 +39,61 @@ export default function EventDetailsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#000" },
-  image: { width: "100%", height: 300 },
-  content: { padding: 16 },
-  title: { color: "#fff", fontSize: 24, fontWeight: "700", marginBottom: 4 },
-  category: { color: "#ffb703", fontSize: 14, marginBottom: 6 },
-  info: { color: "#ddd", fontSize: 14, marginBottom: 2 },
-  status: { color: "#ff6b6b", fontSize: 14, fontWeight: "600", marginVertical: 8 },
-  aboutHeader: { color: "#fff", fontSize: 18, fontWeight: "700", marginTop: 16 },
-  aboutText: { color: "#ccc", fontSize: 15, marginTop: 6, lineHeight: 22 },
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  image: {
+    width: "100%",
+    height: 300,
+  },
+  content: {
+    padding: 16,
+  },
+  title: {
+    color: "#1a1a1a", 
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  category: {
+    color: "#ffb703",
+    fontSize: 14,
+    marginBottom: 6,
+  },
+  info: {
+    color: "#444", 
+    fontSize: 14,
+    marginBottom: 2,
+  },
+  status: {
+    color: "#ff6b6b",
+    fontSize: 14,
+    fontWeight: "600",
+    marginVertical: 8,
+  },
+  aboutHeader: {
+    color: "#1a1a1a", 
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 16,
+  },
+  aboutText: {
+    color: "#333",
+    fontSize: 15,
+    marginTop: 6,
+    lineHeight: 22,
+  },
   backButton: {
     marginTop: 28,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: "#fff",
+    borderColor: "#333",
     borderRadius: 10,
     alignItems: "center",
   },
-  backText: { color: "#fff", fontSize: 16 },
+  backText: {
+    color: "#1a1a1a",
+    fontSize: 16,
+  },
 });
