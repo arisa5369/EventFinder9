@@ -12,9 +12,10 @@ import {
   TouchableOpacity,
   View,
   RefreshControl,
+  DeviceEventEmitter,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import events from "../event/events.json"; 
+import events from "../event/events.json";
 
 interface RawEvent {
   id: string;
@@ -30,14 +31,13 @@ interface RawEvent {
   status?: string;
 }
 
-
 interface Event {
   id: string;
   name: string;
   location: string;
   date: string;
   description?: string;
-  attendees?: number;
+  attendees?: number | string;
   price: string | number;
   organizer?: string;
   image: string | { uri: string };
@@ -77,11 +77,10 @@ export default function Discover({ navigation }: { navigation?: any }) {
     setRefreshing(false);
   };
 
-  
   const filteredEvents: Event[] = (events as RawEvent[]).map((event) => ({
     ...event,
-    organizer: event.organized_by, 
-    image: { uri: event.image }, 
+    organizer: event.organized_by,
+    image: { uri: event.image },
   })).filter((event) => {
     const nameMatch = searchQuery
       ? event.name.toLowerCase().includes(searchQuery.toLowerCase().trim())
@@ -95,8 +94,8 @@ export default function Discover({ navigation }: { navigation?: any }) {
   const openDetailsModal = (event: RawEvent) => {
     setSelectedEvent({
       ...event,
-      organizer: event.organized_by, 
-      image: { uri: event.image }, 
+      organizer: event.organized_by,
+      image: { uri: event.image },
     });
     setDetailsModalVisible(true);
     loadSavedEvents();
@@ -123,11 +122,13 @@ export default function Discover({ navigation }: { navigation?: any }) {
         savedEvents = [...savedEvents, eventToSave];
         await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
         setSavedEventIds([...savedEventIds, selectedEvent.id]);
+        DeviceEventEmitter.emit("updateSavedEvents", savedEvents);
         alert("Event saved successfully!");
       } else {
         savedEvents = savedEvents.filter((e) => e.id !== selectedEvent.id);
         await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
         setSavedEventIds(savedEventIds.filter((id) => id !== selectedEvent.id));
+        DeviceEventEmitter.emit("updateSavedEvents", savedEvents);
         alert("Event unsaved successfully!");
       }
     } catch (error) {
@@ -165,7 +166,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
         }
         renderItem={({ item }: { item: Event }) => (
           <TouchableOpacity
-            onPress={() => openDetailsModal(item as unknown as RawEvent)} // Cast to RawEvent for openDetailsModal
+            onPress={() => openDetailsModal(item as unknown as RawEvent)}
             style={styles.card}
             activeOpacity={0.8}
           >
@@ -280,7 +281,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
                   <View style={styles.infoRow}>
                     <Ionicons name="people-outline" size={24} color="#666" style={styles.icon} />
                     <Text style={styles.infoText}>
-                      Attendees: {selectedEvent.attendees.toLocaleString()}
+                      Attendees: {typeof selectedEvent.attendees === "number" ? selectedEvent.attendees.toLocaleString() : selectedEvent.attendees}
                     </Text>
                   </View>
                 )}
@@ -336,6 +337,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
     </View>
   );
 }
+
 
 const styles = StyleSheet.create({
   container: {

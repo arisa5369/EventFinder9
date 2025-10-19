@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { FlatList, Image, StyleSheet, Text, View, RefreshControl, Button } from "react-native";
+import { FlatList, Image, StyleSheet, Text, View, RefreshControl, Button, DeviceEventEmitter } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface Event {
@@ -7,11 +7,13 @@ interface Event {
   name: string;
   location: string;
   date: string;
-  description: string;
-  attendees: string;
+  description?: string;
+  attendees?: number | string;
   price: string;
   organizer: string;
   image?: { uri: string };
+  duration?: string;
+  status?: string;
 }
 
 export default function Saved({ navigation }: { navigation?: any }) {
@@ -25,13 +27,24 @@ export default function Saved({ navigation }: { navigation?: any }) {
       setSavedEvents(events);
     } catch (error) {
       console.error("Error loading events:", error);
+      alert("Failed to load saved events.");
     }
   };
 
   useEffect(() => {
     loadSavedEvents();
-    const unsubscribe = navigation?.addListener?.("focus", loadSavedEvents);
-    return unsubscribe;
+    const unsubscribeFocus = navigation?.addListener?.("focus", () => {
+      console.log("Saved screen focused, loading events");
+      loadSavedEvents();
+    });
+    const eventListener = DeviceEventEmitter.addListener("updateSavedEvents", (newSavedEvents: Event[]) => {
+      console.log("Received update via DeviceEventEmitter:", newSavedEvents);
+      setSavedEvents(newSavedEvents);
+    });
+    return () => {
+      unsubscribeFocus?.();
+      eventListener.remove();
+    };
   }, [navigation]);
 
   const handleRefresh = async () => {
@@ -48,6 +61,7 @@ export default function Saved({ navigation }: { navigation?: any }) {
       await AsyncStorage.setItem("savedEvents", JSON.stringify(savedEvents));
       setSavedEvents(savedEvents);
       alert("Event removed successfully!");
+      DeviceEventEmitter.emit("updateSavedEvents", savedEvents);
     } catch (error) {
       console.error("Error removing event:", error);
       alert("An error occurred while removing.");
@@ -59,32 +73,27 @@ export default function Saved({ navigation }: { navigation?: any }) {
       <Text style={styles.header}>Saved Events</Text>
       <FlatList
         data={savedEvents}
-        keyExtractor={(item) => item.id || `fallback-${Math.random()}`}
+        keyExtractor={(item) => item.id}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={handleRefresh}
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
             <Text style={styles.name}>{item.name || "Unknown Name"}</Text>
             <Text style={styles.date}>{item.date || "Unknown Date"}</Text>
-            <Text style={styles.location}>
-              {item.location || "Unknown Location"}
-            </Text>
-            <Text style={styles.description} numberOfLines={2}>
-              {item.description || "No description available"}
-            </Text>
-            <Text style={styles.attendees}>
-              {item.attendees || "Unknown attendees"}
-            </Text>
-            <Text style={styles.price}>
-              {item.price || "Unknown price"}
-            </Text>
-            <Text style={styles.organizer}>
-              Organized by: {item.organizer || "Unknown organizer"}
-            </Text>
+            <Text style={styles.location}>{item.location || "Unknown Location"}</Text>
+            {item.description && (
+              <Text style={styles.description} numberOfLines={2}>
+                {item.description || "No description available"}
+              </Text>
+            )}
+            {item.attendees && (
+              <Text style={styles.attendees}>
+                Attendees: {typeof item.attendees === "number" ? item.attendees.toLocaleString() : item.attendees || "Unknown attendees"}
+              </Text>
+            )}
+            <Text style={styles.price}>{item.price || "Unknown price"}</Text>
+            <Text style={styles.organizer}>Organized by: {item.organizer || "Unknown organizer"}</Text>
             <Image
               source={
                 item.image && item.image.uri
@@ -93,16 +102,10 @@ export default function Saved({ navigation }: { navigation?: any }) {
               }
               style={styles.eventImage}
             />
-            <Button
-              title="Remove"
-              onPress={() => removeEvent(item.id)}
-              color="#FF0000"
-            />
+            <Button title="Remove" onPress={() => removeEvent(item.id)} color="#FF0000" />
           </View>
         )}
-        ListEmptyComponent={() => (
-          <Text style={styles.emptyText}>No events saved yet.</Text>
-        )}
+        ListEmptyComponent={() => <Text style={styles.emptyText}>No events saved yet.</Text>}
       />
     </View>
   );
