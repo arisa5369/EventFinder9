@@ -16,3 +16,6 @@ Create Event: Krijo evente të reja duke zgjedhur tipin, datën, lokacionin, çm
 Tickets & Billing: Zgjidh bileta të ndryshme (General/VIP), vendos sasinë dhe plotëso informacionin e faturimit për të kryer porosinë.  
 
 Past Events: Shiko eventet më të mira nga e kaluara dhe highlights me lajme për eventet e mbajtura.
+
+Antarët e grupit : 
+Albena Mehmeti , Arbias Bala , Arisa Dragusha , Kaltrinë Heta , Uran Gegaj , Yll Cervadiku .
