@@ -1,4 +1,7 @@
+// app/(tabs)/_layout.tsx
+
 import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
 export default function TabsLayout() {
@@ -6,9 +9,16 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#000",
+        tabBarActiveTintColor: "#4E73DF", // Ngjyra e aktivizuar
+        tabBarInactiveTintColor: "#888", // Ngjyra jo-aktive
+        tabBarStyle: {
+          backgroundColor: "#fff",
+          borderTopWidth: 1,
+          borderTopColor: "#eee",
+        },
       }}
     >
+      {/* 1. DISCOVER */}
       <Tabs.Screen
         name="discover"
         options={{
@@ -18,6 +28,8 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      {/* 2. SAVED */}
       <Tabs.Screen
         name="saved"
         options={{
@@ -27,6 +39,8 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      {/* 3. ADD EVENT */}
       <Tabs.Screen
         name="add-event"
         options={{
@@ -36,6 +50,19 @@ export default function TabsLayout() {
           ),
         }}
       />
+
+      {/* 4. EVENTS MAP – I RI */}
+      <Tabs.Screen
+        name="events-map"
+        options={{
+          title: "Events Map",
+          tabBarIcon: ({ color, size }) => (
+            <FontAwesome name="map" size={size - 2} color={color} />
+          ),
+        }}
+      />
+
+      {/* 5. TICKETS */}
       <Tabs.Screen
         name="tickets"
         options={{
@@ -46,7 +73,7 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Këto dy screens fshehen nga tab bar */}
+      {/* Fshehur nga tab bar */}
       <Tabs.Screen name="account" options={{ href: null }} />
       <Tabs.Screen name="past-events" options={{ href: null }} />
     </Tabs>

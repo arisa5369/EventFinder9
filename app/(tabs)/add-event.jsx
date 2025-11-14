@@ -13,10 +13,13 @@ import {
   Pressable,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import { v4 as uuidv4 } from "react-native-uuid";
+import MapView, { Marker } from "react-native-maps";
+import * as Location from "expo-location"; // <-- Tani do të funksionojë pas instalimit
 
 const EVENT_TYPES = [
   "Comedy",
@@ -42,14 +45,41 @@ export default function AddEventScreen() {
   const [organizedBy, setOrganizedBy] = useState("");
   const [duration, setDuration] = useState("");
   const [description, setDescription] = useState("");
-
   const [showPicker, setShowPicker] = useState({
     date: false,
     start: false,
     end: false,
   });
 
+  const [selectedLocation, setSelectedLocation] = useState({
+    latitude: 42.6629,
+    longitude: 21.1655,
+  });
+  const [userLocation, setUserLocation] = useState(null);
+  const [existingEvents, setExistingEvents] = useState([]);
   const slideAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    (async () => {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status === "granted") {
+        const loc = await Location.getCurrentPositionAsync({});
+        setUserLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } else {
+        Alert.alert("Location permission denied");
+      }
+
+      const fileUri = FileSystem.documentDirectory + "events.json";
+      const fileInfo = await FileSystem.getInfoAsync(fileUri);
+      if (fileInfo.exists) {
+        const content = await FileSystem.readAsStringAsync(fileUri);
+        setExistingEvents(JSON.parse(content));
+      }
+    })();
+  }, []);
 
   const toggleType = (type) =>
     setSelectedTypes((prev) =>
@@ -96,53 +126,44 @@ export default function AddEventScreen() {
 
     try {
       const id = uuidv4?.() || Date.now().toString();
-
       const newEvent = {
         id,
         name: eventTitle,
         date: date.toDateString(),
-        start_time: startTime.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
-        end_time: endTime.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: false,
-        }),
+        start_time: startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }),
+        end_time: endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false }),
         location: locationType === "venue" ? locationDetails : locationType,
         price: parseFloat(price) || 0,
-        image:
-          image ||
-          "https://reporteri.net/wp-content/uploads/2020/03/ttt-4.png",
+        image: image || "https://reporteri.net/wp-content/uploads/2020/03/ttt-4.png",
         attendees: parseInt(attendees) || 0,
         organized_by: organizedBy || "Kosovo Basketball Federation",
         duration,
         description,
         types: selectedTypes,
+        coordinates: selectedLocation,
       };
 
       const fileUri = FileSystem.documentDirectory + "events.json";
-      let existingEvents = [];
-
+      let eventsList = [];
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
       if (fileInfo.exists) {
         const fileContent = await FileSystem.readAsStringAsync(fileUri);
-        existingEvents = JSON.parse(fileContent);
+        eventsList = JSON.parse(fileContent);
       }
+      eventsList.push(newEvent);
+      await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(eventsList, null, 2));
 
-      existingEvents.push(newEvent);
-
-      await FileSystem.writeAsStringAsync(
-        fileUri,
-        JSON.stringify(existingEvents, null, 2)
+      Alert.alert(
+        "Success",
+        `Your event "${eventTitle}" has been saved!\nLat: ${selectedLocation.latitude.toFixed(
+          4
+        )}, Lng: ${selectedLocation.longitude.toFixed(4)}`
       );
 
-      Alert.alert("Success", `Your event "${eventTitle}" has been saved successfully!`);
       resetFields();
+      setExistingEvents(eventsList);
     } catch (error) {
-      console.error("❌ Error saving event:", error);
+      console.error("Error saving event:", error);
       Alert.alert("Error", `Failed to save the event.\n${error.message}`);
     }
   };
@@ -178,17 +199,11 @@ export default function AddEventScreen() {
           {EVENT_TYPES.map((type) => (
             <TouchableOpacity
               key={type}
-              style={[
-                styles.chip,
-                selectedTypes.includes(type) && styles.chipSelected,
-              ]}
+              style={[styles.chip, selectedTypes.includes(type) && styles.chipSelected]}
               onPress={() => toggleType(type)}
             >
               <Text
-                style={[
-                  styles.chipText,
-                  selectedTypes.includes(type) && styles.chipTextSelected,
-                ]}
+                style={[styles.chipText, selectedTypes.includes(type) && styles.chipTextSelected]}
               >
                 {type}
               </Text>
@@ -208,49 +223,28 @@ export default function AddEventScreen() {
 
         {/* DATE */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Date</Text>
-        <TouchableOpacity
-          style={styles.modernInput}
-          onPress={() => openPicker("date")}
-        >
-          <Text style={styles.inputText}>📅 {date.toLocaleDateString()}</Text>
+        <TouchableOpacity style={styles.modernInput} onPress={() => openPicker("date")}>
+          <Text style={styles.inputText}>{date.toLocaleDateString()}</Text>
         </TouchableOpacity>
 
         {/* START TIME */}
         <Text style={styles.label}>Start Time</Text>
-        <TouchableOpacity
-          style={styles.modernInput}
-          onPress={() => openPicker("start")}
-        >
+        <TouchableOpacity style={styles.modernInput} onPress={() => openPicker("start")}>
           <Text style={styles.inputText}>
-            🕒{" "}
-            {startTime.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
+            {startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
           </Text>
         </TouchableOpacity>
 
         {/* END TIME */}
         <Text style={styles.label}>End Time</Text>
-        <TouchableOpacity
-          style={styles.modernInput}
-          onPress={() => openPicker("end")}
-        >
+        <TouchableOpacity style={styles.modernInput} onPress={() => openPicker("end")}>
           <Text style={styles.inputText}>
-            🕛{" "}
-            {endTime.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: false,
-            })}
+            {endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false })}
           </Text>
         </TouchableOpacity>
 
         {/* LOCATION */}
-        <Text style={[styles.label, { marginTop: 20 }]}>
-          Where is it located?
-        </Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>Where is it located?</Text>
         <View style={styles.locationRow}>
           {[
             { key: "venue", label: "Venue" },
@@ -259,17 +253,11 @@ export default function AddEventScreen() {
           ].map(({ key, label }) => (
             <TouchableOpacity
               key={key}
-              style={[
-                styles.locationButton,
-                locationType === key && styles.locationButtonSelected,
-              ]}
+              style={[styles.locationButton, locationType === key && styles.locationButtonSelected]}
               onPress={() => setLocationType(key)}
             >
               <Text
-                style={[
-                  styles.locationText,
-                  locationType === key && styles.locationTextSelected,
-                ]}
+                style={[styles.locationText, locationType === key && styles.locationTextSelected]}
               >
                 {label}
               </Text>
@@ -289,6 +277,30 @@ export default function AddEventScreen() {
             />
           </>
         )}
+
+        {/* MAP */}
+        <Text style={[styles.label, { marginTop: 20 }]}>Select Event Location</Text>
+        <View style={styles.mapContainer}>
+          <MapView
+            style={styles.map}
+            provider={Platform.OS === "android" ? "google" : undefined}
+            initialRegion={{
+              latitude: userLocation?.latitude || 42.6629,
+              longitude: userLocation?.longitude || 21.1655,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+            showsUserLocation={true}
+            onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
+          >
+            <Marker coordinate={selectedLocation} pinColor="blue" title="New Event" />
+            {existingEvents.map((ev) =>
+              ev.coordinates ? (
+                <Marker key={ev.id} coordinate={ev.coordinates} title={ev.name} pinColor="red" />
+              ) : null
+            )}
+          </MapView>
+        </View>
 
         {/* PRICE */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Price</Text>
@@ -312,9 +324,7 @@ export default function AddEventScreen() {
         />
 
         {/* ATTENDEES */}
-        <Text style={[styles.label, { marginTop: 20 }]}>
-          Expected Attendees
-        </Text>
+        <Text style={[styles.label, { marginTop: 20 }]}>Expected Attendees</Text>
         <TextInput
           style={styles.input}
           placeholder="Enter attendees (number)"
@@ -324,7 +334,7 @@ export default function AddEventScreen() {
           keyboardType="numeric"
         />
 
-        {/* ORGANIZED BY */}
+        {/* ORGANIZER */}
         <Text style={[styles.label, { marginTop: 20 }]}>Organized By</Text>
         <TextInput
           style={styles.input}
@@ -351,7 +361,7 @@ export default function AddEventScreen() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* POPUP PICKER */}
+      {/* PICKERS */}
       {Object.entries(showPicker).map(([type, visible]) =>
         visible ? (
           <Modal key={type} transparent animationType="fade">
@@ -359,22 +369,11 @@ export default function AddEventScreen() {
             <Animated.View style={[styles.modalBox, slideUp]}>
               <View style={styles.handleBar} />
               <Text style={styles.modalTitle}>
-                {type === "date"
-                  ? "Select Date"
-                  : type === "start"
-                  ? "Select Start Time"
-                  : "Select End Time"}
+                {type === "date" ? "Select Date" : type === "start" ? "Select Start Time" : "Select End Time"}
               </Text>
-
               <View style={{ alignItems: "center" }}>
                 <DateTimePicker
-                  value={
-                    type === "date"
-                      ? date
-                      : type === "start"
-                      ? startTime
-                      : endTime
-                  }
+                  value={type === "date" ? date : type === "start" ? startTime : endTime}
                   mode={type === "date" ? "date" : "time"}
                   display="spinner"
                   is24Hour={true}
@@ -388,11 +387,7 @@ export default function AddEventScreen() {
                   style={{ width: "100%" }}
                 />
               </View>
-
-              <TouchableOpacity
-                style={styles.doneButton}
-                onPress={() => closePicker(type)}
-              >
+              <TouchableOpacity style={styles.doneButton} onPress={() => closePicker(type)}>
                 <Text style={styles.doneText}>Done</Text>
               </TouchableOpacity>
             </Animated.View>
@@ -406,33 +401,15 @@ export default function AddEventScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#ffffff" },
   scroll: { paddingHorizontal: 20 },
-  header: { fontSize: 22, fontWeight: "700", color: "#000", marginTop: 10 },
+  header: { fontSize:1, fontWeight: "700", color: "#000", marginTop: 10 },
   subheader: { color: "#333", fontSize: 15, marginBottom: 20 },
   label: { fontSize: 16, fontWeight: "600", color: "#000", marginBottom: 10 },
-  chipContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-    marginBottom: 20,
-  },
-  chip: {
-    backgroundColor: "#e0e0e0",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginRight: 8,
-    marginBottom: 8,
-  },
+  chipContainer: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
+  chip: { backgroundColor: "#e0e0e0", borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, marginRight: 8, marginBottom: 8 },
   chipSelected: { backgroundColor: "#4E73DF" },
   chipText: { fontSize: 14, color: "#000" },
   chipTextSelected: { color: "#fff", fontWeight: "600" },
-  input: {
-    backgroundColor: "#f2f2f2",
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 16,
-    color: "#000",
-  },
+  input: { backgroundColor: "#f2f2f2", borderRadius: 10, padding: 14, fontSize: 16, color: "#000" },
   modernInput: {
     backgroundColor: "#fff",
     borderRadius: 12,
@@ -447,76 +424,19 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   inputText: { fontSize: 15, color: "#333" },
-  locationRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-    marginBottom: 40,
-  },
-  locationButton: {
-    flex: 1,
-    borderRadius: 10,
-    backgroundColor: "#e0e0e0",
-    paddingVertical: 14,
-    alignItems: "center",
-    marginHorizontal: 4,
-  },
+  locationRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 10, marginBottom: 40 },
+  locationButton: { flex: 1, borderRadius: 10, backgroundColor: "#e0e0e0", paddingVertical: 14, alignItems: "center", marginHorizontal: 4 },
   locationButtonSelected: { backgroundColor: "#4E73DF" },
   locationText: { color: "#000", fontWeight: "500" },
   locationTextSelected: { color: "#fff", fontWeight: "700" },
-  addButton: {
-    backgroundColor: "#4E73DF",
-    borderRadius: 10,
-    padding: 16,
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 40,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700",
-  },
+  mapContainer: { height: 250, borderRadius: 12, overflow: "hidden", marginBottom: 20 },
+  map: { flex: 1 },
+  addButton: { backgroundColor: "#4E73DF", borderRadius: 10, padding: 16, alignItems: "center", marginTop: 20, marginBottom: 40 },
+  addButtonText: { color: "#fff", fontSize: 16, fontWeight: "700" },
   overlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.4)" },
-  modalBox: {
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
-    backgroundColor: "#fff",
-    borderTopLeftRadius: 25,
-    borderTopRightRadius: 25,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  handleBar: {
-    width: 50,
-    height: 5,
-    backgroundColor: "#ccc",
-    borderRadius: 3,
-    alignSelf: "center",
-    marginBottom: 10,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#4E73DF",
-    textAlign: "center",
-    marginBottom: 10,
-  },
-  doneButton: {
-    backgroundColor: "#4E73DF",
-    paddingVertical: 12,
-    borderRadius: 12,
-    marginTop: 10,
-  },
-  doneText: {
-    color: "#fff",
-    fontWeight: "600",
-    textAlign: "center",
-    fontSize: 16,
-  },
+  modalBox: { position: "absolute", bottom: 0, left: 0, right: 0, backgroundColor: "#fff", borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 },
+  handleBar: { width: 60, height: 5, backgroundColor: "#ccc", borderRadius: 3, alignSelf: "center", marginBottom: 10 },
+  modalTitle: { textAlign: "center", fontWeight: "700", fontSize: 16, marginBottom: 10 },
+  doneButton: { backgroundColor: "#4E73DF", borderRadius: 8, padding: 10, alignItems: "center", marginTop: 10 },
+  doneText: { color: "#fff", fontWeight: "700" },
 });
