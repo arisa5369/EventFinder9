@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -11,7 +12,10 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from 'react-native';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -27,8 +31,68 @@ export default function RegisterScreen() {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleRegister = () => {
-    router.replace('/(tabs)/discover');
+  const [loading, setLoading] = useState(false);
+
+  const handleRegister = async () => {
+    if (!formData.name.trim()) {
+      Alert.alert('Error', 'Please enter your name');
+      return;
+    }
+
+    if (!formData.email.trim() || !formData.email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    if (!formData.phone.trim()) {
+      Alert.alert('Error', 'Please enter your phone number');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+      
+      Alert.alert('Success', 'Account created successfully!', [
+        {
+          text: 'OK',
+          onPress: () => {
+            router.replace('/(tabs)/discover');
+          },
+        },
+      ]);
+    } catch (error) {
+      console.error('Registration error:', error);
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      if (error.code === 'auth/configuration-not-found') {
+        errorMessage = 'Email/Password authentication is not enabled in Firebase Console.\n\nPlease enable it:\n1. Go to Firebase Console\n2. Select your project\n3. Go to Authentication > Sign-in method\n4. Enable Email/Password\n5. Restart the app';
+      } else if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please sign in instead.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      }
+      
+      Alert.alert('Registration Failed', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const navigateToLogin = () => {
@@ -109,8 +173,16 @@ export default function RegisterScreen() {
               />
             </View>
 
-            <TouchableOpacity style={styles.registerButton} onPress={handleRegister}>
-              <Text style={styles.registerButtonText}>Create Account</Text>
+            <TouchableOpacity
+              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.registerButtonText}>Create Account</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.footer}>
@@ -210,5 +282,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#0a7ea4',
     fontWeight: '600',
+  },
+  registerButtonDisabled: {
+    opacity: 0.6,
   },
 });

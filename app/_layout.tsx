@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { DrawerToggleButton } from "@react-navigation/drawer";
 import { View, TouchableOpacity, Text } from "react-native";
+import { ThemeProvider } from "../contexts/ThemeContext";
 
 function CustomDrawerContent() {
   const router = useRouter();
@@ -43,39 +44,41 @@ function CustomDrawerContent() {
 
 export default function RootLayout() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <Drawer
-        screenOptions={{
-          headerShown: true,
-          headerTitleAlign: "center",
-        
-          headerLeft: () => <DrawerToggleButton />,
-        }}
-        drawerContent={() => <CustomDrawerContent />}
-      >
-        <Drawer.Screen
-          name="(tabs)"
-          options={{
+    <ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <Drawer
+          screenOptions={{
             headerShown: true,
-            title: "Event Finder",
-          }}
-        />
-        <Drawer.Screen
-          name="settings"
-          options={{
-            title: "Settings",
+            headerTitleAlign: "center",
+          
             headerLeft: () => <DrawerToggleButton />,
           }}
-        />
-        <Drawer.Screen
-          name="auth/login"
-          options={{ drawerItemStyle: { display: "none" } }}
-        />
-        <Drawer.Screen
-          name="auth/register"
-          options={{ drawerItemStyle: { display: "none" } }}
-        />
-      </Drawer>
-    </GestureHandlerRootView>
+          drawerContent={() => <CustomDrawerContent />}
+        >
+          <Drawer.Screen
+            name="(tabs)"
+            options={{
+              headerShown: true,
+              title: "Event Finder",
+            }}
+          />
+          <Drawer.Screen
+            name="settings"
+            options={{
+              title: "Settings",
+              headerLeft: () => <DrawerToggleButton />,
+            }}
+          />
+          <Drawer.Screen
+            name="auth/login"
+            options={{ drawerItemStyle: { display: "none" } }}
+          />
+          <Drawer.Screen
+            name="auth/register"
+            options={{ drawerItemStyle: { display: "none" } }}
+          />
+        </Drawer>
+      </GestureHandlerRootView>
+    </ThemeProvider>
   );
 }
