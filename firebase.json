@@ -24,7 +24,7 @@
     }
   ],
   "hosting": {
-    "public": "public",
+    "public": "dist",  // KËTU NDRYSHOJE NGA "public" NË "dist"
     "ignore": [
       "firebase.json",
       "**/.*",
