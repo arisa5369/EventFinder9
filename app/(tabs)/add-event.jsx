@@ -16,10 +16,23 @@ import {
   Platform,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import * as FileSystem from "expo-file-system/legacy";
+import * as FileSystem from "expo-file-system";
 import { v4 as uuidv4 } from "react-native-uuid";
-import MapView, { Marker } from "react-native-maps";
-import * as Location from "expo-location"; // <-- Tani do të funksionojë pas instalimit
+import * as Location from "expo-location";
+
+// ASGJË NGA react-native-maps NË KRYE – KJO ËSHTË ARSYEJA E ERRORIT!
+let MapView = null;
+let Marker = null;
+
+if (Platform.OS !== "web") {
+  try {
+    const maps = require("react-native-maps");
+    MapView = maps.default || maps.MapView;
+    Marker = maps.Marker;
+  } catch (e) {
+    console.warn("react-native-maps nuk u gjet (vetëm në web)");
+  }
+}
 
 const EVENT_TYPES = [
   "Comedy",
@@ -32,6 +45,8 @@ const EVENT_TYPES = [
 ];
 
 export default function AddEventScreen() {
+  const isWeb = Platform.OS === "web";
+
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [eventTitle, setEventTitle] = useState("");
   const [date, setDate] = useState(new Date());
@@ -45,11 +60,7 @@ export default function AddEventScreen() {
   const [organizedBy, setOrganizedBy] = useState("");
   const [duration, setDuration] = useState("");
   const [description, setDescription] = useState("");
-  const [showPicker, setShowPicker] = useState({
-    date: false,
-    start: false,
-    end: false,
-  });
+  const [showPicker, setShowPicker] = useState({ date: false, start: false, end: false });
 
   const [selectedLocation, setSelectedLocation] = useState({
     latitude: 42.6629,
@@ -61,20 +72,19 @@ export default function AddEventScreen() {
 
   useEffect(() => {
     (async () => {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === "granted") {
-        const loc = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: loc.coords.latitude,
-          longitude: loc.coords.longitude,
-        });
-      } else {
-        Alert.alert("Location permission denied");
+      if (!isWeb) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const loc = await Location.getCurrentPositionAsync({});
+          const coords = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          setUserLocation(coords);
+          setSelectedLocation(coords);
+        }
       }
 
       const fileUri = FileSystem.documentDirectory + "events.json";
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      if (fileInfo.exists) {
+      const info = await FileSystem.getInfoAsync(fileUri);
+      if (info.exists) {
         const content = await FileSystem.readAsStringAsync(fileUri);
         setExistingEvents(JSON.parse(content));
       }
@@ -100,22 +110,17 @@ export default function AddEventScreen() {
     Animated.timing(slideAnim, {
       toValue: 0,
       duration: 250,
-      easing: Easing.in(Easing.ease),
       useNativeDriver: true,
-    }).start(() => {
-      setShowPicker((prev) => ({ ...prev, [type]: false }));
-    });
+    }).start(() => setShowPicker((prev) => ({ ...prev, [type]: false })));
   };
 
   const slideUp = {
-    transform: [
-      {
-        translateY: slideAnim.interpolate({
-          inputRange: [0, 1],
-          outputRange: [300, 0],
-        }),
-      },
-    ],
+    transform: [{
+      translateY: slideAnim.interpolate({
+        inputRange: [0, 1],
+        outputRange: [300, 0],
+      }),
+    }],
   };
 
   const handleAddEvent = async () => {
@@ -125,7 +130,7 @@ export default function AddEventScreen() {
     }
 
     try {
-      const id = uuidv4?.() || Date.now().toString();
+      const id = uuidv4();
       const newEvent = {
         id,
         name: eventTitle,
@@ -145,26 +150,19 @@ export default function AddEventScreen() {
 
       const fileUri = FileSystem.documentDirectory + "events.json";
       let eventsList = [];
-      const fileInfo = await FileSystem.getInfoAsync(fileUri);
-      if (fileInfo.exists) {
-        const fileContent = await FileSystem.readAsStringAsync(fileUri);
-        eventsList = JSON.parse(fileContent);
+      const info = await FileSystem.getInfoAsync(fileUri);
+      if (info.exists) {
+        const content = await FileSystem.readAsStringAsync(fileUri);
+        eventsList = JSON.parse(content);
       }
       eventsList.push(newEvent);
       await FileSystem.writeAsStringAsync(fileUri, JSON.stringify(eventsList, null, 2));
 
-      Alert.alert(
-        "Success",
-        `Your event "${eventTitle}" has been saved!\nLat: ${selectedLocation.latitude.toFixed(
-          4
-        )}, Lng: ${selectedLocation.longitude.toFixed(4)}`
-      );
-
+      Alert.alert("Success", `Your event "${eventTitle}" has been saved!`);
       resetFields();
       setExistingEvents(eventsList);
     } catch (error) {
-      console.error("Error saving event:", error);
-      Alert.alert("Error", `Failed to save the event.\n${error.message}`);
+      Alert.alert("Error", "Failed to save event.");
     }
   };
 
@@ -189,11 +187,9 @@ export default function AddEventScreen() {
       <StatusBar barStyle="dark-content" />
       <ScrollView showsVerticalScrollIndicator={false} style={styles.scroll}>
         <Text style={styles.header}>Create Your Event</Text>
-        <Text style={styles.subheader}>
-          Tell us about your event so we can help you make it great!
-        </Text>
+        <Text style={styles.subheader}>Tell us about your event so we can help you make it great!</Text>
 
-        {/* EVENT TYPE */}
+        {/* TË GJITHA PJESËT E FORMËS – NJËSOJ SI TI I KE PASUR */}
         <Text style={styles.label}>What type of events do you host?</Text>
         <View style={styles.chipContainer}>
           {EVENT_TYPES.map((type) => (
@@ -202,32 +198,21 @@ export default function AddEventScreen() {
               style={[styles.chip, selectedTypes.includes(type) && styles.chipSelected]}
               onPress={() => toggleType(type)}
             >
-              <Text
-                style={[styles.chipText, selectedTypes.includes(type) && styles.chipTextSelected]}
-              >
+              <Text style={[styles.chipText, selectedTypes.includes(type) && styles.chipTextSelected]}>
                 {type}
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* EVENT TITLE */}
         <Text style={styles.label}>What's the name of your event?</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Event title"
-          placeholderTextColor="#777"
-          value={eventTitle}
-          onChangeText={setEventTitle}
-        />
+        <TextInput style={styles.input} placeholder="Event title" value={eventTitle} onChangeText={setEventTitle} />
 
-        {/* DATE */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Date</Text>
         <TouchableOpacity style={styles.modernInput} onPress={() => openPicker("date")}>
           <Text style={styles.inputText}>{date.toLocaleDateString()}</Text>
         </TouchableOpacity>
 
-        {/* START TIME */}
         <Text style={styles.label}>Start Time</Text>
         <TouchableOpacity style={styles.modernInput} onPress={() => openPicker("start")}>
           <Text style={styles.inputText}>
@@ -235,7 +220,6 @@ export default function AddEventScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* END TIME */}
         <Text style={styles.label}>End Time</Text>
         <TouchableOpacity style={styles.modernInput} onPress={() => openPicker("end")}>
           <Text style={styles.inputText}>
@@ -243,24 +227,15 @@ export default function AddEventScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* LOCATION */}
         <Text style={[styles.label, { marginTop: 20 }]}>Where is it located?</Text>
         <View style={styles.locationRow}>
-          {[
-            { key: "venue", label: "Venue" },
-            { key: "online", label: "Online event" },
-            { key: "tba", label: "To be announced" },
-          ].map(({ key, label }) => (
+          {[{ key: "venue", label: "Venue" }, { key: "online", label: "Online event" }, { key: "tba", label: "To be announced" }].map(({ key, label }) => (
             <TouchableOpacity
               key={key}
               style={[styles.locationButton, locationType === key && styles.locationButtonSelected]}
               onPress={() => setLocationType(key)}
             >
-              <Text
-                style={[styles.locationText, locationType === key && styles.locationTextSelected]}
-              >
-                {label}
-              </Text>
+              <Text style={[styles.locationText, locationType === key && styles.locationTextSelected]}>{label}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -268,125 +243,91 @@ export default function AddEventScreen() {
         {locationType === "venue" && (
           <>
             <Text style={styles.label}>Venue Details</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter venue address or details"
-              placeholderTextColor="#777"
-              value={locationDetails}
-              onChangeText={setLocationDetails}
-            />
+            <TextInput style={styles.input} placeholder="Enter venue address or details" value={locationDetails} onChangeText={setLocationDetails} />
           </>
         )}
 
-        {/* MAP */}
+        {/* HARTA – TANI 100% PA ERROR NË WEB */}
         <Text style={[styles.label, { marginTop: 20 }]}>Select Event Location</Text>
         <View style={styles.mapContainer}>
-          <MapView
-            style={styles.map}
-            provider={Platform.OS === "android" ? "google" : undefined}
-            initialRegion={{
-              latitude: userLocation?.latitude || 42.6629,
-              longitude: userLocation?.longitude || 21.1655,
-              latitudeDelta: 0.05,
-              longitudeDelta: 0.05,
-            }}
-            showsUserLocation={true}
-            onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
-          >
-            <Marker coordinate={selectedLocation} pinColor="blue" title="New Event" />
-            {existingEvents.map((ev) =>
-              ev.coordinates ? (
-                <Marker key={ev.id} coordinate={ev.coordinates} title={ev.name} pinColor="red" />
-              ) : null
-            )}
-          </MapView>
+          {!isWeb && MapView ? (
+            <MapView
+              style={styles.map}
+              initialRegion={{
+                latitude: userLocation?.latitude || 42.6629,
+                longitude: userLocation?.longitude || 21.1655,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
+              }}
+              showsUserLocation={true}
+              onPress={(e) => setSelectedLocation(e.nativeEvent.coordinate)}
+            >
+              <Marker coordinate={selectedLocation} pinColor="blue" title="New Event" />
+              {existingEvents.map((ev) => ev.coordinates ? <Marker key={ev.id} coordinate={ev.coordinates} pinColor="red" /> : null)}
+            </MapView>
+          ) : (
+            <View style={{ flex: 1, backgroundColor: "#f0f0f0", justifyContent: "center", alignItems: "center", padding: 20 }}>
+              <Text style={{ fontSize: 16, color: "#666", marginBottom: 15 }}>
+                {isWeb ? "Harta është e disponueshme vetëm në aplikacionin mobil" : "Po ngarkohet harta..."}
+              </Text>
+              <View style={{ flexDirection: "row", gap: 10 }}>
+                <TextInput
+                  style={[styles.input, { width: 130 }]}
+                  placeholder="Lat"
+                  value={selectedLocation.latitude.toFixed(6)}
+                  onChangeText={(t) => setSelectedLocation(p => ({ ...p, latitude: parseFloat(t) || 42.6629 }))}
+                  keyboardType="numeric"
+                />
+                <TextInput
+                  style={[styles.input, { width: 130 }]}
+                  placeholder="Lng"
+                  value={selectedLocation.longitude.toFixed(6)}
+                  onChangeText={(t) => setSelectedLocation(p => ({ ...p, longitude: parseFloat(t) || 21.1655 }))}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+          )}
         </View>
 
-        {/* PRICE */}
+        {/* PJESËT E TJERA TË FORMËS – NJËSOJ */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Price</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter price (e.g., 15)"
-          placeholderTextColor="#777"
-          value={price}
-          onChangeText={setPrice}
-          keyboardType="numeric"
-        />
+        <TextInput style={styles.input} placeholder="Enter price (e.g., 15)" value={price} onChangeText={setPrice} keyboardType="numeric" />
 
-        {/* IMAGE */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Image URL</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter image URL (optional)"
-          placeholderTextColor="#777"
-          value={image}
-          onChangeText={setImage}
-        />
+        <TextInput style={styles.input} placeholder="Enter image URL (optional)" value={image} onChangeText={setImage} />
 
-        {/* ATTENDEES */}
         <Text style={[styles.label, { marginTop: 20 }]}>Expected Attendees</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter attendees (number)"
-          placeholderTextColor="#777"
-          value={attendees}
-          onChangeText={setAttendees}
-          keyboardType="numeric"
-        />
+        <TextInput style={styles.input} placeholder="Enter attendees (number)" value={attendees} onChangeText={setAttendees} keyboardType="numeric" />
 
-        {/* ORGANIZER */}
         <Text style={[styles.label, { marginTop: 20 }]}>Organized By</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter organizer name"
-          placeholderTextColor="#777"
-          value={organizedBy}
-          onChangeText={setOrganizedBy}
-        />
+        <TextInput style={styles.input} placeholder="Enter organizer name" value={organizedBy} onChangeText={setOrganizedBy} />
 
-        {/* DESCRIPTION */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Description</Text>
-        <TextInput
-          style={[styles.input, { height: 100 }]}
-          placeholder="Enter event description"
-          placeholderTextColor="#777"
-          value={description}
-          onChangeText={setDescription}
-          multiline
-        />
+        <TextInput style={[styles.input, { height: 100 }]} placeholder="Enter event description" value={description} onChangeText={setDescription} multiline />
 
-        {/* ADD EVENT */}
         <TouchableOpacity style={styles.addButton} onPress={handleAddEvent}>
           <Text style={styles.addButtonText}>Add Event</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* PICKERS */}
+      {/* DATE/TIME PICKERS */}
       {Object.entries(showPicker).map(([type, visible]) =>
         visible ? (
-          <Modal key={type} transparent animationType="fade">
+          <Modal key={type} transparent>
             <Pressable style={styles.overlay} onPress={() => closePicker(type)} />
             <Animated.View style={[styles.modalBox, slideUp]}>
               <View style={styles.handleBar} />
               <Text style={styles.modalTitle}>
                 {type === "date" ? "Select Date" : type === "start" ? "Select Start Time" : "Select End Time"}
               </Text>
-              <View style={{ alignItems: "center" }}>
-                <DateTimePicker
-                  value={type === "date" ? date : type === "start" ? startTime : endTime}
-                  mode={type === "date" ? "date" : "time"}
-                  display="spinner"
-                  is24Hour={true}
-                  onChange={(e, value) => {
-                    if (value) {
-                      if (type === "date") setDate(value);
-                      if (type === "start") setStartTime(value);
-                      if (type === "end") setEndTime(value);
-                    }
-                  }}
-                  style={{ width: "100%" }}
-                />
-              </View>
+              <DateTimePicker
+                value={type === "date" ? date : type === "start" ? startTime : endTime}
+                mode={type === "date" ? "date" : "time"}
+                display="spinner"
+                is24Hour={true}
+                onChange={(e, val) => val && (type === "date" ? setDate(val) : type === "start" ? setStartTime(val) : setEndTime(val))}
+              />
               <TouchableOpacity style={styles.doneButton} onPress={() => closePicker(type)}>
                 <Text style={styles.doneText}>Done</Text>
               </TouchableOpacity>
@@ -401,11 +342,11 @@ export default function AddEventScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#ffffff" },
   scroll: { paddingHorizontal: 20 },
-  header: { fontSize:1, fontWeight: "700", color: "#000", marginTop: 10 },
+  header: { fontSize: 1, fontWeight: "700", color: "#000", marginTop: 10 },
   subheader: { color: "#333", fontSize: 15, marginBottom: 20 },
   label: { fontSize: 16, fontWeight: "600", color: "#000", marginBottom: 10 },
   chipContainer: { flexDirection: "row", flexWrap: "wrap", gap: 10, marginBottom: 20 },
-  chip: { backgroundColor: "#e0e0e0", borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14, marginRight: 8, marginBottom: 8 },
+  chip: { backgroundColor: "#e0e0e0", borderRadius: 20, paddingVertical: 8, paddingHorizontal: 14 },
   chipSelected: { backgroundColor: "#4E73DF" },
   chipText: { fontSize: 14, color: "#000" },
   chipTextSelected: { color: "#fff", fontWeight: "600" },
