@@ -19,7 +19,6 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import events from "../event/events.json";
-
 import { db, auth } from "../firebase";
 import {
   collection,
@@ -67,13 +66,12 @@ interface Event {
 
 const { width, height } = Dimensions.get("window");
 
-export default function Discover({ navigation }: { navigation?: any }) {
+export default function Discover({ navigation, route }: { navigation?: any; route?: any }) {
   // ========== STATE ==========
   const [modalVisible, setModalVisible] = useState(false);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchLocation, setSearchLocation] = useState("");
@@ -81,12 +79,8 @@ export default function Discover({ navigation }: { navigation?: any }) {
   const [refreshing, setRefreshing] = useState(false);
   const [firebaseEvents, setFirebaseEvents] = useState<Event[]>([]);
   const [currentUid, setCurrentUid] = useState<string | null>(null);
-
   const [deletedLocalIds, setDeletedLocalIds] = useState<string[]>([]);
-  const [editedLocalEvents, setEditedLocalEvents] = useState<Record<string, Partial<Omit<Event, "id" | "isFirebase">>>>(
-    {}
-  );
-
+  const [editedLocalEvents, setEditedLocalEvents] = useState<Record<string, Partial<Omit<Event, "id" | "isFirebase">>>>({});
   const [form, setForm] = useState<Omit<Event, "id" | "isFirebase">>({
     name: "",
     location: "",
@@ -100,7 +94,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
   });
 
   // ========== IMAGE HELPER ==========
-  // Always return a valid source object for <Image source={...} />:
   const safeImageSource = useCallback((image: any) => {
     const placeholder = { uri: "https://via.placeholder.com/300x150.png?text=Event" };
     if (!image) return placeholder;
@@ -154,51 +147,37 @@ export default function Discover({ navigation }: { navigation?: any }) {
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
-        console.log("onAuthStateChanged: signed in", user.uid);
         setCurrentUid(user.uid);
       } else {
-        console.log("onAuthStateChanged: no user, signing in anonymously...");
         signInAnonymously(auth)
-          .then(({ user }) => {
-            console.log("Anonymous sign-in success:", user?.uid);
-            setCurrentUid(user?.uid || null);
-          })
-          .catch((err) => {
-            console.error("Anonymous sign-in failed:", err);
-          });
+          .then(({ user }) => setCurrentUid(user?.uid || null))
+          .catch((err) => console.error("Anonymous sign-in failed:", err));
       }
     });
     return () => unsub();
   }, []);
 
-  // Improved ensureSignedIn with retry and logging
   const ensureSignedIn = async (retries = 2): Promise<string | null> => {
     try {
-      if (auth.currentUser) {
-        console.log("ensureSignedIn: already signed in", auth.currentUser.uid);
-        return auth.currentUser.uid;
-      }
+      if (auth.currentUser) return auth.currentUser.uid;
       const res = await signInAnonymously(auth);
-      console.log("ensureSignedIn: signed in anonymously", res.user?.uid);
       return res.user?.uid || null;
     } catch (err: any) {
-      console.error("ensureSignedIn failed:", err);
       if (retries > 0) {
         await new Promise((r) => setTimeout(r, 700));
         return ensureSignedIn(retries - 1);
       }
-      Alert.alert("Gabim", `Nuk mund të identifikohet përdoruesi: ${err?.message || err}`);
+      Alert.alert("Gabim", `Identifikimi dështoi: ${err?.message || err}`);
       return null;
     }
   };
 
-  // ========== FIRESTORE + FOCUS ==========
+  // ========== FIRESTORE + FOCUS + NEW EVENT FROM AddEventScreen ==========
   useEffect(() => {
     loadSavedEvents();
     loadLocalChanges();
 
     const q = query(collection(db, "events"), orderBy("date", "asc"));
-
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -211,8 +190,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
           } else if (typeof docData.date === "string") {
             dateStr = docData.date;
           }
-
-          const ownerId = docData.ownerId || docData.owner || docData.ownerUID || docData.userId || null;
+          const ownerId = docData.ownerId || null;
 
           return {
             id: d.id,
@@ -232,9 +210,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
         });
         setFirebaseEvents(data);
       },
-      (err) => {
-        Alert.alert("Gabim", `Dështoi marrja e eventeve: ${err?.message || err}`);
-      }
+      (err) => Alert.alert("Gabim", `Dështoi: ${err?.message || err}`)
     );
 
     const focusUnsub = navigation?.addListener?.("focus", () => {
@@ -248,13 +224,24 @@ export default function Discover({ navigation }: { navigation?: any }) {
     };
   }, [navigation, loadSavedEvents, loadLocalChanges]);
 
+  // Rifresko me event të ri nga AddEventScreen
+  useEffect(() => {
+    if (route?.params?.newEvent) {
+      const newEv = route.params.newEvent;
+      setFirebaseEvents((prev) => {
+        if (prev.some((e) => e.id === newEv.id)) return prev;
+        return [...prev, newEv];
+      });
+      navigation.setParams({ newEvent: undefined });
+    }
+  }, [route?.params?.newEvent, navigation]);
+
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([loadSavedEvents(), loadLocalChanges()]);
     setRefreshing(false);
   }, [loadSavedEvents, loadLocalChanges]);
 
-  // ========== FORM HELPERS ==========
   const resetForm = useCallback(() => {
     setForm({
       name: "",
@@ -275,12 +262,8 @@ export default function Discover({ navigation }: { navigation?: any }) {
       Alert.alert("Gabim", "Plotëso fushat e detyrueshme!");
       return;
     }
-
     const uid = currentUid || (await ensureSignedIn());
-    if (!uid) {
-      Alert.alert("Gabim", "Nuk mund të identifikohet përdoruesi.");
-      return;
-    }
+    if (!uid) return;
 
     const payload: any = {
       ...form,
@@ -292,7 +275,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
     };
 
     try {
-      // Rely on onSnapshot to reflect created event — avoids dupes.
       await addDoc(collection(db, "events"), payload);
       Alert.alert("Sukses", "Eventi u krijua!");
       setCreateModalVisible(false);
@@ -307,7 +289,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
       Alert.alert("Gabim", "Plotëso fushat e detyrueshme!");
       return;
     }
-
     if (selectedEvent.isFirebase && selectedEvent.ownerId && currentUid !== selectedEvent.ownerId) {
       Alert.alert("Pa leje", "Vetëm pronari mund ta editojë.");
       return;
@@ -334,16 +315,11 @@ export default function Discover({ navigation }: { navigation?: any }) {
         await updateDoc(doc(db, "events", selectedEvent.id), { ...updated, image: String(imageUrl), updatedAt: serverTimestamp() });
       } catch (err) {
         Alert.alert("Gabim", "Përditësimi dështoi.");
-        console.error("updateDoc failed:", err);
       }
     } else {
       const newEdits = { ...editedLocalEvents, [selectedEvent.id]: updated };
       setEditedLocalEvents(newEdits);
-      try {
-        await AsyncStorage.setItem("editedLocalEvents", JSON.stringify(newEdits));
-      } catch (err) {
-        Alert.alert("Gabim", "Ruajtja lokale dështoi.");
-      }
+      await AsyncStorage.setItem("editedLocalEvents", JSON.stringify(newEdits));
     }
 
     Alert.alert("Sukses", "Eventi u përditësua!");
@@ -353,7 +329,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
 
   const handleDelete = useCallback(() => {
     if (!selectedEvent?.id) return;
-
     if (selectedEvent.isFirebase && selectedEvent.ownerId && currentUid !== selectedEvent.ownerId) {
       Alert.alert("Pa leje", "Vetëm pronari mund ta fshijë.");
       return;
@@ -371,17 +346,12 @@ export default function Discover({ navigation }: { navigation?: any }) {
               Alert.alert("Sukses", "Eventi u fshi!");
             } catch (err) {
               Alert.alert("Gabim", "Fshirja dështoi.");
-              console.error("deleteDoc failed:", err);
             }
           } else {
             const newDel = Array.from(new Set([...deletedLocalIds, selectedEvent.id]));
             setDeletedLocalIds(newDel);
-            try {
-              await AsyncStorage.setItem("deletedLocalIds", JSON.stringify(newDel));
-              Alert.alert("Sukses", "Eventi u fshi!");
-            } catch (err) {
-              Alert.alert("Gabim", "Fshirja lokale dështoi.");
-            }
+            await AsyncStorage.setItem("deletedLocalIds", JSON.stringify(newDel));
+            Alert.alert("Sukses", "Eventi u fshi!");
           }
           setDetailsModalVisible(false);
           setSelectedEvent(null);
@@ -390,12 +360,10 @@ export default function Discover({ navigation }: { navigation?: any }) {
     ]);
   }, [selectedEvent, currentUid, deletedLocalIds]);
 
-  // Important: close details modal first to avoid stacked modals freezing the UI,
-  // then open edit modal after a short delay.
   const openEditModal = useCallback(() => {
     if (!selectedEvent) return;
     if (selectedEvent.isFirebase && selectedEvent.ownerId && currentUid !== selectedEvent.ownerId) {
-      Alert.alert("Pa leje", "Vetëm pronari mund ta editojë këtë event.");
+      Alert.alert("Pa leje", "Vetëm pronari mund ta editojë.");
       return;
     }
 
@@ -411,7 +379,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
       status: selectedEvent.status || "",
     });
 
-    // Close the details modal first (if open), then open edit modal after a short delay.
     if (detailsModalVisible) {
       setDetailsModalVisible(false);
       setTimeout(() => setEditModalVisible(true), 180);
@@ -429,24 +396,22 @@ export default function Discover({ navigation }: { navigation?: any }) {
         const imageUrl = edits.image ? (typeof edits.image === "string" ? edits.image : (edits.image as any).uri) : e.image;
         return {
           id: e.id,
-          name: e.name,
-          location: e.location,
-          date: e.date,
-          description: e.description,
-          attendees: e.attendees,
+          name: edits.name ?? e.name,
+          location: edits.location ?? e.location,
+          date: edits.date ?? e.date,
+          description: edits.description ?? e.description,
+          attendees: edits.attendees ?? e.attendees,
           price: edits.price !== undefined ? edits.price : e.price,
-          organizer: e.organized_by,
+          organizer: edits.organizer ?? e.organized_by,
           image: { uri: imageUrl },
           isFirebase: false,
           duration: edits.duration ?? e.duration,
           status: edits.status ?? e.status,
-          ...edits,
         } as Event;
       });
   }, [deletedLocalIds, editedLocalEvents]);
 
   const allEvents = useMemo(() => [...processedLocalEvents, ...firebaseEvents], [processedLocalEvents, firebaseEvents]);
-
   const filteredEvents = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     const l = searchLocation.trim().toLowerCase();
@@ -469,7 +434,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
       const json = await AsyncStorage.getItem("savedEvents");
       let saved: Event[] = json ? JSON.parse(json) : [];
       const exists = saved.some((e) => e.id === selectedEvent.id);
-
       if (exists) {
         saved = saved.filter((e) => e.id !== selectedEvent.id);
         setSavedEventIds((prev) => prev.filter((i) => i !== selectedEvent.id));
@@ -479,12 +443,10 @@ export default function Discover({ navigation }: { navigation?: any }) {
         setSavedEventIds((prev) => [...prev, selectedEvent.id]);
         Alert.alert("Ruajtur!", "Eventi u ruajt.");
       }
-
       await AsyncStorage.setItem("savedEvents", JSON.stringify(saved));
       DeviceEventEmitter.emit("updateSavedEvents", saved);
     } catch (e) {
       Alert.alert("Gabim", "Ruajtja dështoi.");
-      console.error("toggleSaveEvent error:", e);
     }
   }, [selectedEvent]);
 
@@ -555,7 +517,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
         )}
       />
 
-      {/* ========== SEARCH MODAL ========== */}
+      {/* SEARCH MODAL */}
       <Modal animationType="slide" transparent visible={modalVisible}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -595,7 +557,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
         </View>
       </Modal>
 
-      {/* ========== DETAILS MODAL ========== */}
+      {/* DETAILS MODAL */}
       <Modal animationType="slide" transparent visible={detailsModalVisible}>
         <View style={styles.modalContainer}>
           <View style={styles.bottomSheet}>
@@ -608,9 +570,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
                       <Ionicons name="close" size={24} color="#666" />
                     </TouchableOpacity>
                   </View>
-
                   <Image source={safeImageSource(selectedEvent.image)} style={styles.heroImage} />
-
                   <View style={styles.infoRow}>
                     <Ionicons name="calendar-outline" size={24} color="#666" />
                     <Text style={styles.infoText}>Date: {selectedEvent.date}</Text>
@@ -649,7 +609,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
                       <Text style={styles.infoText}>Status: {selectedEvent.status}</Text>
                     </View>
                   )}
-
                   {selectedEvent.isFirebase && (
                     <View style={styles.ownerInfoContainer}>
                       <Text style={styles.ownerInfoText}>
@@ -658,7 +617,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
                       </Text>
                     </View>
                   )}
-
                   <TouchableOpacity onPress={toggleSaveEvent} style={styles.saveContainer}>
                     <Ionicons
                       name={savedEventIds.includes(selectedEvent.id) ? "heart" : "heart-outline"}
@@ -694,7 +652,6 @@ export default function Discover({ navigation }: { navigation?: any }) {
                 </>
               )}
             </ScrollView>
-
             <TouchableOpacity style={[styles.customButton, styles.closeButton]} onPress={() => setDetailsModalVisible(false)}>
               <Text style={styles.buttonText}>Close</Text>
             </TouchableOpacity>
@@ -702,52 +659,28 @@ export default function Discover({ navigation }: { navigation?: any }) {
         </View>
       </Modal>
 
-      {/* ========== CREATE MODAL ========== */}
+      {/* CREATE MODAL */}
       <Modal animationType="slide" transparent visible={createModalVisible}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
             <View style={styles.modalContent}>
               <View style={styles.modalHeaderRow}>
                 <Text style={styles.modalHeader}>Create Event</Text>
-                <TouchableOpacity
-                  onPress={() => {
-                    setCreateModalVisible(false);
-                    resetForm();
-                  }}
-                >
+                <TouchableOpacity onPress={() => { setCreateModalVisible(false); resetForm(); }}>
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
-
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <TextInput style={styles.modalInput} placeholder="Name*" value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
                 <TextInput style={styles.modalInput} placeholder="Location*" value={form.location} onChangeText={(t) => setForm({ ...form, location: t })} />
                 <TextInput style={styles.modalInput} placeholder="Date (YYYY-MM-DD)*" value={form.date} onChangeText={(t) => setForm({ ...form, date: t })} />
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Price (€)"
-                  keyboardType="numeric"
-                  value={String(form.price)}
-                  onChangeText={(t) => setForm({ ...form, price: parseFloat(t) || 0 })}
-                />
+                <TextInput style={styles.modalInput} placeholder="Price (€)" keyboardType="numeric" value={String(form.price)} onChangeText={(t) => setForm({ ...form, price: parseFloat(t) || 0 })} />
                 <TextInput style={styles.modalInput} placeholder="Organizer" value={form.organizer} onChangeText={(t) => setForm({ ...form, organizer: t })} />
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Image URL"
-                  value={typeof form.image === "string" ? form.image : ""}
-                  onChangeText={(t) => setForm({ ...form, image: t })}
-                />
-                <TextInput
-                  style={[styles.modalInput, styles.multilineInput]}
-                  placeholder="Description"
-                  multiline
-                  value={form.description}
-                  onChangeText={(t) => setForm({ ...form, description: t })}
-                />
+                <TextInput style={styles.modalInput} placeholder="Image URL" value={typeof form.image === "string" ? form.image : ""} onChangeText={(t) => setForm({ ...form, image: t })} />
+                <TextInput style={[styles.modalInput, styles.multilineInput]} placeholder="Description" multiline value={form.description} onChangeText={(t) => setForm({ ...form, description: t })} />
                 <TextInput style={styles.modalInput} placeholder="Duration" value={form.duration} onChangeText={(t) => setForm({ ...form, duration: t })} />
                 <TextInput style={styles.modalInput} placeholder="Status" value={form.status} onChangeText={(t) => setForm({ ...form, status: t })} />
               </ScrollView>
-
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.customButton} onPress={() => { setCreateModalVisible(false); resetForm(); }}>
                   <Text style={styles.buttonText}>Cancel</Text>
@@ -761,7 +694,7 @@ export default function Discover({ navigation }: { navigation?: any }) {
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* ========== EDIT MODAL ========== */}
+      {/* EDIT MODAL */}
       <Modal animationType="slide" transparent visible={editModalVisible}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
@@ -772,36 +705,17 @@ export default function Discover({ navigation }: { navigation?: any }) {
                   <Ionicons name="close" size={24} color="#666" />
                 </TouchableOpacity>
               </View>
-
               <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                 <TextInput style={styles.modalInput} placeholder="Name*" value={form.name} onChangeText={(t) => setForm({ ...form, name: t })} />
                 <TextInput style={styles.modalInput} placeholder="Location*" value={form.location} onChangeText={(t) => setForm({ ...form, location: t })} />
                 <TextInput style={styles.modalInput} placeholder="Date (YYYY-MM-DD)*" value={form.date} onChangeText={(t) => setForm({ ...form, date: t })} />
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Price (€)"
-                  keyboardType="numeric"
-                  value={String(form.price)}
-                  onChangeText={(t) => setForm({ ...form, price: parseFloat(t) || 0 })}
-                />
+                <TextInput style={styles.modalInput} placeholder="Price (€)" keyboardType="numeric" value={String(form.price)} onChangeText={(t) => setForm({ ...form, price: parseFloat(t) || 0 })} />
                 <TextInput style={styles.modalInput} placeholder="Organizer" value={form.organizer} onChangeText={(t) => setForm({ ...form, organizer: t })} />
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Image URL"
-                  value={typeof form.image === "string" ? form.image : ""}
-                  onChangeText={(t) => setForm({ ...form, image: t })}
-                />
-                <TextInput
-                  style={[styles.modalInput, styles.multilineInput]}
-                  placeholder="Description"
-                  multiline
-                  value={form.description}
-                  onChangeText={(t) => setForm({ ...form, description: t })}
-                />
+                <TextInput style={styles.modalInput} placeholder="Image URL" value={typeof form.image === "string" ? form.image : ""} onChangeText={(t) => setForm({ ...form, image: t })} />
+                <TextInput style={[styles.modalInput, styles.multilineInput]} placeholder="Description" multiline value={form.description} onChangeText={(t) => setForm({ ...form, description: t })} />
                 <TextInput style={styles.modalInput} placeholder="Duration" value={form.duration} onChangeText={(t) => setForm({ ...form, duration: t })} />
                 <TextInput style={styles.modalInput} placeholder="Status" value={form.status} onChangeText={(t) => setForm({ ...form, status: t })} />
               </ScrollView>
-
               <View style={styles.modalButtons}>
                 <TouchableOpacity style={styles.customButton} onPress={() => { setEditModalVisible(false); resetForm(); }}>
                   <Text style={styles.buttonText}>Cancel</Text>
