@@ -15,7 +15,8 @@ import {
     ActivityIndicator,
 } from 'react-native';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 export default function RegisterScreen() {
   const router = useRouter();
@@ -49,8 +50,23 @@ export default function RegisterScreen() {
       return;
     }
 
-    if (formData.password.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters long');
+    if (!formData.phone.trim().startsWith('+')) {
+      Alert.alert('Error', 'Phone number must start with + (e.g., +383 44 123 456)');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    if (!/\d/.test(formData.password)) {
+      Alert.alert('Error', 'Password must contain at least one number');
+      return;
+    }
+
+    if (!/[A-Z]/.test(formData.password)) {
+      Alert.alert('Error', 'Password must contain at least one uppercase letter');
       return;
     }
 
@@ -66,6 +82,15 @@ export default function RegisterScreen() {
         formData.email,
         formData.password
       );
+      
+      const userDocRef = doc(db, 'users', userCredential.user.uid);
+      await setDoc(userDocRef, {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
       
       Alert.alert('Success', 'Account created successfully!', [
         {
@@ -141,7 +166,7 @@ export default function RegisterScreen() {
               <Ionicons name="call-outline" size={20} color="#999" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Enter your phone number"
+                placeholder="+383 44 123 456"
                 placeholderTextColor="#999"
                 value={formData.phone}
                 onChangeText={(value) => updateFormData('phone', value)}
@@ -153,7 +178,7 @@ export default function RegisterScreen() {
               <Ionicons name="lock-closed-outline" size={20} color="#999" style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
-                placeholder="Create a password"
+                placeholder="At least 8 chars, 1 number, 1 uppercase"
                 placeholderTextColor="#999"
                 value={formData.password}
                 onChangeText={(value) => updateFormData('password', value)}

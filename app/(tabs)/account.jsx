@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -13,8 +12,9 @@ import {
     View,
     ActivityIndicator,
 } from 'react-native';
-
-const STORAGE_KEY = '@spoton:userProfile';
+import { doc, getDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
+import { signOut } from 'firebase/auth';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -28,18 +28,43 @@ export default function AccountScreen() {
 
   const loadProfile = useCallback(async () => {
     try {
-      const savedProfile = await AsyncStorage.getItem(STORAGE_KEY);
-      if (savedProfile) {
-        const profile = JSON.parse(savedProfile);
+      const currentUser = auth.currentUser;
+      if (!currentUser) {
+        console.log('No user logged in');
+        setLoading(false);
+        return;
+      }
+
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userDataFromFirestore = userDocSnap.data();
         setUserData({
-          name: profile.name || 'John Doe',
-          email: profile.email || 'john.doe@example.com',
-          phone: profile.phone || '+383 44 123 456',
-          profileImage: profile.profileImage || null,
+          name: userDataFromFirestore.name || currentUser.email?.split('@')[0] || 'User',
+          email: userDataFromFirestore.email || currentUser.email || '',
+          phone: userDataFromFirestore.phone || '',
+          profileImage: userDataFromFirestore.profileImage || null,
+        });
+      } else {
+        setUserData({
+          name: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+          email: currentUser.email || '',
+          phone: '',
+          profileImage: null,
         });
       }
     } catch (error) {
       console.error('Error loading profile:', error);
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setUserData({
+          name: currentUser.displayName || currentUser.email?.split('@')[0] || 'User',
+          email: currentUser.email || '',
+          phone: '',
+          profileImage: null,
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -56,8 +81,14 @@ export default function AccountScreen() {
     router.push('/settings/edit-profile');
   };
 
-  const handleLogout = () => {
-    router.replace('/auth/login');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      router.replace('/auth/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+      router.replace('/auth/login');
+    }
   };
 
   if (loading) {
