@@ -1,3 +1,4 @@
+// app/past-events.jsx
 import { useRouter } from "expo-router";
 import {
   Dimensions,
@@ -33,26 +34,24 @@ const pastStories = [
   {
     id: "a2",
     title: "Alban Skënderaj - 'MOTIV' Concert. Due to high demand, tickets for the first night sold out within hours, prompting the addition of three more nights.",
-   image: require("../../assets/images/albani.jpg"),
+    image: require("../../assets/images/albani.jpg"),
   },
-   {
+  {
     id: "a3",
     title: 'Shawn Mendes lands in Kosovo for the first time, setting Sunny Hill Festival 2025 on fire with an unforgettable performance!',
     image: require("../../assets/images/shawn1.jpg"),
   },
-{
-  id: "a4",
-  title: 'Old Timers Fest 2024 at Tirana showcased classic cars and incredible stories that amazed every visitor!',
-  image: require("../../assets/images/oldtimer.jpg"),
-},
-{
-  id: "a5",
-  title: 'The “Verë N’Dimër” festival returns this year in Prishtina with concerts, fairs, cultural activities, and plenty of surprises for all visitors!',
-  image: require("../../assets/images/ver.jpg"),
-},
-
+  {
+    id: "a4",
+    title: 'Old Timers Fest 2024 at Tirana showcased classic cars and incredible stories that amazed every visitor!',
+    image: require("../../assets/images/oldtimer.jpg"),
+  },
+  {
+    id: "a5",
+    title: 'The “Verë N’Dimër” festival returns this year in Prishtina with concerts, fairs, cultural activities, and plenty of surprises for all visitors!',
+    image: require("../../assets/images/ver.jpg"),
+  },
 ];
-
 
 export default function PastEventsScreen() {
   const router = useRouter();
@@ -64,6 +63,7 @@ export default function PastEventsScreen() {
         router.push({
           pathname: "/event-details",
           params: {
+            id: item.id,                    // SHTUAR KËTU
             title: item.title,
             date: item.date,
             location: item.location,
@@ -130,21 +130,19 @@ export default function PastEventsScreen() {
 
 const styles = StyleSheet.create({
   container: {
-  flex: 1,
-  backgroundColor: "#ffffffff",
- padding: 20,
-},
-
+    flex: 1,
+    backgroundColor: "#ffffffff",
+    padding: 20,
+  },
   header: {
-  fontSize: 24,
-  fontWeight: "700",
-  color: "#000000ff",
-  marginBottom: 16,
-  letterSpacing: 0.5,
-  marginTop: 10,      
-  marginLeft: 12,     
-},
-
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#000000ff",
+    marginBottom: 16,
+    letterSpacing: 0.5,
+    marginTop: 10,
+    marginLeft: 12,
+  },
   card: {
     width: width * 0.75,
     marginRight: 18,
@@ -201,7 +199,6 @@ const styles = StyleSheet.create({
   },
   storyCard: {
     marginBottom: 24,
-
     borderBottomColor: "#e0dbdbff",
     borderBottomWidth: 1,
     paddingBottom: 12,
