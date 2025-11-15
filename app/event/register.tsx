@@ -1,14 +1,20 @@
 import { useState } from "react";
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
-export default function RegisterTickets({ event, onClose }) {
+interface Props {
+  event: any;
+  onClose: () => void;
+  onPurchaseSuccess: (quantity: number) => void;
+}
+
+export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: Props) {
   const [quantity, setQuantity] = useState(1);
   const [ticketType, setTicketType] = useState("General Admission");
   const [showBilling, setShowBilling] = useState(false);
@@ -18,32 +24,37 @@ export default function RegisterTickets({ event, onClose }) {
   const [surname, setSurname] = useState("");
   const [email, setEmail] = useState("");
 
+  const availableTickets = event.quantity || 0;
   const generalPrice = event.price;
   const vipPrice = event.price * 1.8;
   const total =
-    ticketType === "VIP Admission"
-      ? vipPrice * quantity
-      : generalPrice * quantity;
+    ticketType === "VIP Admission" ? vipPrice * quantity : generalPrice * quantity;
 
   const handlePlaceOrder = () => {
+    if (quantity > availableTickets) {
+      alert("There are not enough tickets for you.");
+      return;
+    }
+
     alert(
-      `✅ Order Confirmed!\n\nEvent: ${event.name}\nTickets: ${quantity} (${ticketType})\nTotal: €${total.toFixed(
+      `Order Confirmed!\n\nEvent: ${event.name}\nTickets: ${quantity} × ${ticketType}\nTotal: €${total.toFixed(
         2
-      )}\n\nThank you, ${name}!`
+      )}\n\nFaleminderit, ${name}!`
     );
-    setShowBilling(false);
-    onClose(); 
+
+    onPurchaseSuccess(quantity);   
+    onClose();
   };
 
   const handleClose = () => {
     setShowSelectModal(false);
     setShowBilling(false);
-    onClose(); 
+    onClose();
   };
 
   return (
     <View style={styles.container}>
-      {/* Modal: Select Ticket */}
+    
       <Modal
         visible={showSelectModal}
         animationType="slide"
@@ -55,15 +66,12 @@ export default function RegisterTickets({ event, onClose }) {
           activeOpacity={1}
           onPress={handleClose}
         >
-          <View style={styles.modalBox}>
-            <TouchableOpacity
-              style={styles.closeBtn}
-              onPress={handleClose} 
-            >
-              <Text style={styles.closeText}>✕</Text>
+          <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
+            <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+              <Text style={styles.closeText}>X</Text>
             </TouchableOpacity>
 
-            <Text style={styles.modalTitle}>🎫 Select Ticket</Text>
+            <Text style={styles.modalTitle}>Select Ticket</Text>
 
             <Text style={styles.label}>Ticket Type</Text>
             <View style={styles.ticketOptions}>
@@ -100,18 +108,37 @@ export default function RegisterTickets({ event, onClose }) {
               <Text style={styles.quantity}>{quantity}</Text>
 
               <TouchableOpacity
-                style={styles.btn}
-                onPress={() => setQuantity(quantity + 1)}
+                style={[
+                  styles.btn,
+                  quantity >= availableTickets && styles.btnDisabled,
+                ]}
+                onPress={() =>
+                  quantity < availableTickets && setQuantity(quantity + 1)
+                }
+                disabled={quantity >= availableTickets}
               >
                 <Text style={styles.btnText}>+</Text>
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.total}>💰 Total: €{total.toFixed(2)}</Text>
+            <Text style={styles.total}>Total: €{total.toFixed(2)}</Text>
+
+            <Text style={styles.availableText}>
+              {availableTickets > 0
+                ? `${availableTickets} remaining tickets`
+                : "There are no more tickets."}
+            </Text>
 
             <TouchableOpacity
-              style={styles.confirmBtn}
+              style={[
+                styles.confirmBtn,
+                quantity > availableTickets && styles.btnDisabled,
+              ]}
               onPress={() => {
+                if (quantity > availableTickets) {
+                  alert("You have selected more tickets than there are available!");
+                  return;
+                }
                 setShowBilling(true);
                 setShowSelectModal(false);
               }}
@@ -122,7 +149,7 @@ export default function RegisterTickets({ event, onClose }) {
         </TouchableOpacity>
       </Modal>
 
-      {/* Modal: Billing Info */}
+     
       <Modal
         visible={showBilling}
         animationType="slide"
@@ -132,9 +159,9 @@ export default function RegisterTickets({ event, onClose }) {
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
-          onPress={handleClose} 
+          onPress={handleClose}
         >
-          <View style={styles.modalBox}>
+          <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
             <Text style={styles.modalTitle}>Billing Information</Text>
 
             <Text style={styles.label}>Name</Text>
@@ -166,21 +193,18 @@ export default function RegisterTickets({ event, onClose }) {
             />
 
             <Text style={styles.summary}>
-              🎟 {quantity} × {ticketType}
+              {quantity} × {ticketType}
               {"\n"}
-              🕒 {event.date} | 📍 {event.location}
+              {event.date} | {event.location}
               {"\n"}
-              💰 Total: €{total.toFixed(2)}
+              Total: €{total.toFixed(2)}
             </Text>
 
             <TouchableOpacity style={styles.placeBtn} onPress={handlePlaceOrder}>
               <Text style={styles.placeText}>Place Order</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.cancelBtn}
-              onPress={handleClose} 
-            >
+            <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
               <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
@@ -191,9 +215,7 @@ export default function RegisterTickets({ event, onClose }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    width: "100%",
-  },
+  container: { width: "100%" },
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(255, 255, 255, 0.6)",
@@ -271,12 +293,24 @@ const styles = StyleSheet.create({
     borderColor: "#ccc",
   },
   btnText: { color: "#000", fontSize: 20, fontWeight: "bold" },
+  btnDisabled: {
+    backgroundColor: "#ccc",
+    opacity: 0.6,
+  },
   quantity: { color: "#000", fontSize: 24, marginHorizontal: 10 },
   total: {
     color: "#000",
     fontSize: 18,
-    marginBottom: 20,
+    marginBottom: 10,
     textAlign: "center",
+    fontWeight: "600",
+  },
+  availableText: {
+    color: "#e74c3c",
+    fontSize: 14,
+    textAlign: "center",
+    marginBottom: 15,
+    fontWeight: "600",
   },
   confirmBtn: {
     backgroundColor: "#4CAF50",
