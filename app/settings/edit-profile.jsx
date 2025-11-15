@@ -1,6 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -16,8 +15,8 @@ import {
     View,
     ActivityIndicator,
 } from 'react-native';
-
-const STORAGE_KEY = '@spoton:userProfile';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase';
 
 export default function EditProfileScreen() {
   const router = useRouter();
@@ -47,31 +46,61 @@ export default function EditProfileScreen() {
 
   const loadProfile = async () => {
     try {
-      const savedProfile = await AsyncStorage.getItem(STORAGE_KEY);
-      if (savedProfile) {
-        const profile = JSON.parse(savedProfile);
+      let currentUser = auth.currentUser;
+      if (!currentUser) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        currentUser = auth.currentUser;
+      }
+      
+      if (!currentUser) {
+        Alert.alert('Error', 'No user logged in. Please log in and try again.');
+        router.back();
+        return;
+      }
+
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userDataFromFirestore = userDocSnap.data();
         setUserData({
-          name: profile.name || 'John Doe',
-          email: profile.email || 'john.doe@example.com',
-          phone: profile.phone || '+383 44 123 456',
-          profileImage: profile.profileImage || null,
+          name: userDataFromFirestore.name || currentUser.email?.split('@')[0] || '',
+          email: userDataFromFirestore.email || currentUser.email || '',
+          phone: userDataFromFirestore.phone || '',
+          profileImage: userDataFromFirestore.profileImage || null,
         });
       } else {
         setUserData({
-          name: 'John Doe',
-          email: 'john.doe@example.com',
-          phone: '+383 44 123 456',
+          name: currentUser.displayName || currentUser.email?.split('@')[0] || '',
+          email: currentUser.email || '',
+          phone: '',
           profileImage: null,
         });
       }
     } catch (error) {
       console.error('Error loading profile:', error);
-      setUserData({
-        name: 'John Doe',
-        email: 'john.doe@example.com',
-        phone: '+383 44 123 456',
-        profileImage: null,
-      });
+      
+      let errorMessage = 'Failed to load profile data.';
+      if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+        errorMessage = 'Permission denied. Please make sure Firestore rules are deployed and you are logged in.';
+      } else if (error.message) {
+        errorMessage = `Failed to load profile: ${error.message}`;
+      }
+      
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        setUserData({
+          name: currentUser.displayName || currentUser.email?.split('@')[0] || '',
+          email: currentUser.email || '',
+          phone: '',
+          profileImage: null,
+        });
+        if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+          Alert.alert('Permission Error', errorMessage);
+        }
+      } else {
+        Alert.alert('Error', errorMessage);
+      }
     } finally {
       setLoading(false);
     }
@@ -179,9 +208,32 @@ export default function EditProfileScreen() {
       return;
     }
 
+    if (userData.phone.trim() && !userData.phone.trim().startsWith('+')) {
+      Alert.alert('Error', 'Phone number must start with + (e.g., +383 44 123 456)');
+      return;
+    }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      Alert.alert('Error', 'No user logged in');
+      return;
+    }
+
     setSaving(true);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
+      const userDocRef = doc(db, 'users', currentUser.uid);
+      await setDoc(
+        userDocRef,
+        {
+          name: userData.name.trim(),
+          email: userData.email.trim(),
+          phone: userData.phone.trim(),
+          profileImage: userData.profileImage || null,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true } 
+      );
+
       Alert.alert('Success', 'Profile updated successfully', [
         {
           text: 'OK',
@@ -190,7 +242,17 @@ export default function EditProfileScreen() {
       ]);
     } catch (error) {
       console.error('Error saving profile:', error);
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      
+      let errorMessage = 'Failed to save profile. Please try again.';
+      if (error.code === 'permission-denied' || error.message?.includes('permission')) {
+        errorMessage = 'Permission denied. Please make sure Firestore rules are deployed. You need to deploy the updated firestore.rules file to Firebase.';
+      } else if (error.code === 'unavailable') {
+        errorMessage = 'Firestore is unavailable. Please check your internet connection and try again.';
+      } else if (error.message) {
+        errorMessage = `Failed to save: ${error.message}`;
+      }
+      
+      Alert.alert('Error Saving Profile', errorMessage);
     } finally {
       setSaving(false);
     }
@@ -269,7 +331,7 @@ export default function EditProfileScreen() {
             <Ionicons name="call-outline" size={20} color="#999" style={styles.inputIcon} />
             <TextInput
               style={styles.input}
-              placeholder="Phone Number"
+              placeholder="+383 44 123 456"
               placeholderTextColor="#999"
               value={userData.phone}
               onChangeText={(value) => setUserData((prev) => ({ ...prev, phone: value }))}

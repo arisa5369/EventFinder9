@@ -10,7 +10,14 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from 'react-native';
+import { 
+  reauthenticateWithCredential, 
+  EmailAuthProvider, 
+  updatePassword 
+} from 'firebase/auth';
+import { auth } from '../firebase';
 
 export default function ChangePasswordScreen() {
   const router = useRouter();
@@ -20,15 +27,27 @@ export default function ChangePasswordScreen() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const handleChangePassword = () => {
+  const handleChangePassword = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
 
+    // Validate new password: at least 8 characters, 1 number, 1 uppercase letter
     if (newPassword.length < 8) {
       Alert.alert('Error', 'Password must be at least 8 characters long');
+      return;
+    }
+
+    if (!/\d/.test(newPassword)) {
+      Alert.alert('Error', 'Password must contain at least one number');
+      return;
+    }
+
+    if (!/[A-Z]/.test(newPassword)) {
+      Alert.alert('Error', 'Password must contain at least one uppercase letter');
       return;
     }
 
@@ -37,21 +56,64 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    Alert.alert(
-      'Success',
-      'Your password has been changed successfully',
-      [
-        {
-          text: 'OK',
-          onPress: () => {
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-            router.back();
+    if (currentPassword === newPassword) {
+      Alert.alert('Error', 'New password must be different from current password');
+      return;
+    }
+
+    const currentUser = auth.currentUser;
+    if (!currentUser || !currentUser.email) {
+      Alert.alert('Error', 'No user logged in');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Step 1: Re-authenticate the user with their current password
+      const credential = EmailAuthProvider.credential(
+        currentUser.email,
+        currentPassword
+      );
+      await reauthenticateWithCredential(currentUser, credential);
+
+      // Step 2: Update the password
+      await updatePassword(currentUser, newPassword);
+
+      Alert.alert(
+        'Success',
+        'Your password has been changed successfully',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setCurrentPassword('');
+              setNewPassword('');
+              setConfirmPassword('');
+              router.back();
+            },
           },
-        },
-      ]
-    );
+        ]
+      );
+    } catch (error) {
+      console.error('Error changing password:', error);
+      let errorMessage = 'Failed to change password. Please try again.';
+      
+      if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Current password is incorrect. Please try again.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'New password is too weak. Please choose a stronger password.';
+      } else if (error.code === 'auth/requires-recent-login') {
+        errorMessage = 'For security, please log out and log back in before changing your password.';
+      } else if (error.code === 'auth/network-request-failed') {
+        errorMessage = 'Network error. Please check your internet connection and try again.';
+      } else if (error.message) {
+        errorMessage = `Failed to change password: ${error.message}`;
+      }
+      
+      Alert.alert('Error', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -135,11 +197,19 @@ export default function ChangePasswordScreen() {
         </View>
 
         <Text style={styles.hint}>
-          Password must be at least 8 characters long
+          Password must be at least 8 characters long, contain 1 number, and 1 uppercase letter
         </Text>
 
-        <TouchableOpacity style={styles.saveButton} onPress={handleChangePassword}>
-          <Text style={styles.saveButtonText}>Change Password</Text>
+        <TouchableOpacity 
+          style={[styles.saveButton, loading && styles.saveButtonDisabled]} 
+          onPress={handleChangePassword}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.saveButtonText}>Change Password</Text>
+          )}
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -207,5 +277,8 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
+  },
+  saveButtonDisabled: {
+    opacity: 0.6,
   },
 });
