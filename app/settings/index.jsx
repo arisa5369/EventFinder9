@@ -222,7 +222,6 @@ export default function SettingsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={dynamicStyles.header}>
           <TouchableOpacity onPress={() => {
-            // Navigate directly to account page, clearing any intermediate screens
             router.push('/(tabs)/account');
           }}>
             <Ionicons name="arrow-back" size={24} color={colors.text} />
