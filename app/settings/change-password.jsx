@@ -35,7 +35,6 @@ export default function ChangePasswordScreen() {
       return;
     }
 
-    // Validate new password: at least 8 characters, 1 number, 1 uppercase letter
     if (newPassword.length < 8) {
       Alert.alert('Error', 'Password must be at least 8 characters long');
       return;
@@ -69,14 +68,12 @@ export default function ChangePasswordScreen() {
 
     setLoading(true);
     try {
-      // Step 1: Re-authenticate the user with their current password
       const credential = EmailAuthProvider.credential(
         currentUser.email,
         currentPassword
       );
       await reauthenticateWithCredential(currentUser, credential);
 
-      // Step 2: Update the password
       await updatePassword(currentUser, newPassword);
 
       Alert.alert(
