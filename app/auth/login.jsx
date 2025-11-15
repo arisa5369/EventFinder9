@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+    Alert,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -11,15 +12,56 @@ import {
     TextInput,
     TouchableOpacity,
     View,
+    ActivityIndicator,
 } from 'react-native';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../firebase';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
-    router.replace('/(tabs)/discover');
+  const [loading, setLoading] = useState(false);
+
+  const handleLogin = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    if (!password.trim()) {
+      Alert.alert('Error', 'Please enter your password');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      
+      router.replace('/(tabs)/discover');
+    } catch (error) {
+      console.error('Login error:', error);
+      let errorMessage = 'Failed to sign in. Please try again.';
+      
+      if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email. Please sign up first.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password. Please try again.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address. Please check your email.';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password. Please try again.';
+      }
+      
+      Alert.alert('Sign In Failed', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const navigateToRegister = () => {
@@ -64,8 +106,16 @@ export default function LoginScreen() {
               />
             </View>
 
-            <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-              <Text style={styles.loginButtonText}>Sign In</Text>
+            <TouchableOpacity
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Sign In</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.footer}>
@@ -164,5 +214,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#0a7ea4',
     fontWeight: '600',
+  },
+  loginButtonDisabled: {
+    opacity: 0.6,
   },
 });
