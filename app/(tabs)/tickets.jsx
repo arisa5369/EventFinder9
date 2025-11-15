@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
 import { FlatList, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import events from "../event/events.json";
+import NotLoggedInBanner from "../../components/NotLoggedInBanner";
 
 const colors = {
   dark: {
@@ -16,6 +17,7 @@ const colors = {
 export default function EventsList() {
   return (
     <View style={styles.container}>
+      <NotLoggedInBanner variant="button" position="top" />
       <Text style={styles.title}>Upcoming Events</Text>
 
       <FlatList

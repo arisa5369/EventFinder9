@@ -20,6 +20,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import events from "../event/events.json";
 import { db, auth } from "../firebase";
+import NotLoggedInBanner from "../../components/NotLoggedInBanner";
 import {
   collection,
   addDoc,
@@ -453,6 +454,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
   // ========== RENDER ==========
   return (
     <View style={styles.container}>
+      <NotLoggedInBanner variant="banner" position="top" />
       <Text style={styles.header}>SpotOn</Text>
 
       <TouchableOpacity onPress={() => setModalVisible(true)} style={styles.inputTouchable}>

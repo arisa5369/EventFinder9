@@ -15,6 +15,7 @@ import {
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
+import NotLoggedInBanner from '../../components/NotLoggedInBanner';
 
 export default function AccountScreen() {
   const router = useRouter();
@@ -104,6 +105,7 @@ export default function AccountScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <NotLoggedInBanner variant="button" position="top" />
         <View style={styles.header}>
           <Text style={styles.title}>My Profile</Text>
           <TouchableOpacity onPress={handleEditProfile}>

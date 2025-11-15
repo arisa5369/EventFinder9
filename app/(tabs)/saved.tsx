@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { FlatList, Image, StyleSheet, Text, View, RefreshControl, Button, DeviceEventEmitter } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NotLoggedInBanner from "../../components/NotLoggedInBanner";
 
 interface Event {
   id: string;
@@ -70,6 +71,7 @@ export default function Saved({ navigation }: { navigation?: any }) {
 
   return (
     <View style={styles.container}>
+      <NotLoggedInBanner variant="banner" position="top" />
       <Text style={styles.header}>Saved Events</Text>
       <FlatList
         data={savedEvents}
