@@ -126,10 +126,10 @@ export default function EventDetail() {
           icon: forecast.weather[0].icon,
         });
       } else {
-        setError("Nuk ka parashikim për këtë ditë.");
+        setError("There is no forecast for this day.");
       }
     } catch (err) {
-      setError("Lidhja me API-në e motit dështoi.");
+      setError("The connection to the weather API failed.");
     } finally {
       setLoadingWeather(false);
     }
@@ -143,7 +143,7 @@ export default function EventDetail() {
     if (event) loadWeather();
   }, [event]);
 
-  // Update quantity pas blerjes
+  
   const handlePurchase = async (qty: number) => {
     if (!event) return;
     const eventRef = doc(db, "events", id);
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
   buttonText: { color: "#fff", fontSize: 18, fontWeight: "600" },
   buttonDisabled: { backgroundColor: "#999", opacity: 0.7 },
 
-  // WEATHER STYLES – 100% SIÇ I KE PASUR TI
+ 
   weatherContainer: { marginVertical: 12, padding: 12, backgroundColor: "#f8f9fa", borderRadius: 12, borderWidth: 1, borderColor: "#ddd" },
   weatherHeader: { flexDirection: "row", justifyContent: "space-between", marginBottom: 8 },
   weatherTitle: { fontSize: 16, fontWeight: "600" },

@@ -28,7 +28,7 @@ export default function EventsList() {
         }));
         setEvents(list as any[]);
       } catch (e) {
-        console.error("Gabim gjatë marrjes së eventeve:", e);
+        console.error("Error while retrieving events:", e);
       } finally {
         setLoading(false);
       }
@@ -48,11 +48,11 @@ export default function EventsList() {
 
   return (
     <View style={styles.container}>
-      {/* ZGJIDHJA E GABIMIT: Shtova style={{}} (bosh ose me stil nëse do) */}
+    
       <NotLoggedInBanner
         variant="button"
         position="top"
-        style={{}} // ← KJO ISHTE E MUNGESË! Tani nuk ka error
+        style={{}} 
       />
 
       <Text style={styles.title}>Upcoming Events</Text>
