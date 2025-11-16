@@ -19,7 +19,8 @@ import * as FileSystem from "expo-file-system/legacy";
 import { v4 as uuidv4 } from "react-native-uuid";
 
 import app, { db, auth } from "../firebase";
-import { collection, addDoc } from "firebase/firestore";
+import { collection, doc, setDoc } from "firebase/firestore";
+
 
 const EVENT_TYPES = [
   "Comedy",
@@ -143,7 +144,8 @@ export default function AddEventScreen() {
         JSON.stringify(existingEvents, null, 2)
       );
 
-      await addDoc(collection(db, "events"), newEvent);
+      await setDoc(doc(db, "events", id.toString()), newEvent);
+
 
       Alert.alert("Success", `Your event "${eventTitle}" has been saved!`);
       resetFields();

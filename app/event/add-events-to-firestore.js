@@ -1,6 +1,5 @@
 import { db } from "../firebase";
-import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
-
+import { collection, setDoc, doc, getDocs, getDoc } from "firebase/firestore";
 const events = [
   {
     id: "1",
@@ -137,32 +136,26 @@ const events = [
     sold: 0
   }
 ];
-
-
 export default async function seedEvents() {
   const eventsRef = collection(db, "events");
 
   for (const event of events) {
-    
-    const q = query(
-      eventsRef,
-      where("name", "==", event.name),
-      where("date", "==", event.date)
-    );
-    const snapshot = await getDocs(q);
+    // Kontrollo nëse dokumenti me ID ekziston tashmë
+    const docRef = doc(db, "events", event.id);
+    const docSnap = await getDoc(docRef);
 
-    if (snapshot.empty) {
-      await addDoc(eventsRef, {
-        ...event,
-        createdAt: new Date(),
-      });
-      console.log("Event shtuar:", event.name);
-    } else {
-      console.log("Event ekziston tashmë:", event.name);
+    if (docSnap.exists()) {
+      console.log("Dokumenti ekziston tashmë për ID:", event.id, " - ", event.name);
+      continue;
     }
+
+    // Shto eventin pa kontroll për name dhe date, sepse ID është unik
+    await setDoc(docRef, {
+      ...event,
+      createdAt: new Date(),
+    });
+    console.log("Event shtuar:", event.name, "me ID:", event.id);
   }
 
-  console.log("Përfundoi kontrolli i eventeve – asnjë dublim!");
+  console.log("Përfundoi shtimi i eventeve!");
 }
-
-

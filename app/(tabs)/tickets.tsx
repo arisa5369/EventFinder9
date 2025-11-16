@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useEffect, useState, useCallback } from "react";
-import { collection, getDocs, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
 import { db } from "../firebase";
 import NotLoggedInBanner from "../../components/NotLoggedInBanner";
 
@@ -26,7 +26,15 @@ export default function EventsList() {
         id: doc.id,
         ...doc.data(),
       }));
-      setEvents(list as any[]);
+
+      // Kontrollo për dublikat dhe filtro
+      const uniqueEvents = Array.from(
+        new Map(list.map((item) => [item.id, item])).values()
+      );
+
+      console.log("Eventet e marra:", uniqueEvents.map((e) => e.id)); // Debug
+
+      setEvents(uniqueEvents as any[]);
       setLoading(false);
       setRefreshing(false);
     }, (error) => {
@@ -35,17 +43,13 @@ export default function EventsList() {
       setRefreshing(false);
     });
 
-   
     return unsubscribe;
   }, []);
 
   useEffect(() => {
     const unsubscribe = fetchEvents();
-
-    
     return () => unsubscribe();
   }, [fetchEvents]);
-
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -64,7 +68,6 @@ export default function EventsList() {
   return (
     <View style={styles.container}>
       <NotLoggedInBanner variant="button" position="top" style={{}} />
-
       <Text style={styles.title}>Upcoming Events</Text>
 
       <FlatList
@@ -74,41 +77,48 @@ export default function EventsList() {
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
-        renderItem={({ item }) => (
-          <Link
-            href={{ pathname: "/event/[id]", params: { id: item.id } }}
-            asChild
-          >
-            <TouchableOpacity style={styles.card}>
-              <Image
-                source={{ uri: item.image || "https://via.placeholder.com/300x180" }}
-                style={styles.image}
-                resizeMode="cover"
-              />
-              <View style={styles.info}>
-                <Text style={styles.name}>{item.name}</Text>
-                <Text style={styles.details}>
-                  {item.date} • {item.location}
-                </Text>
-                <Text style={styles.price}>€ {item.price}</Text>
-
-                {item.quantity !== undefined && (
-                  <Text style={[
-                    styles.quantityText,
-                    item.quantity === 0 && styles.soldOutText
-                  ]}>
-                    {item.quantity > 0
-                      ? `${item.quantity} remaining tickets`
-                      : "Completely sold out"}
+        renderItem={({ item }) => {
+          console.log("Rendering Event ID:", item.id); // Debug
+          return (
+            <Link
+              href={{ pathname: "/event/[id]", params: { id: item.id } }}
+              asChild
+              onPress={() => console.log("Navigating to:", item.id)}
+            >
+              <TouchableOpacity style={styles.card}>
+                <Image
+                  source={{ uri: item.image || "https://via.placeholder.com/300x180" }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+                <View style={styles.info}>
+                  <Text style={styles.name}>{item.name}</Text>
+                  <Text style={styles.details}>
+                    {item.date} • {item.location}
                   </Text>
-                )}
-              </View>
-            </TouchableOpacity>
-          </Link>
-        )}
+                  <Text style={styles.price}>€ {item.price}</Text>
+                  {item.quantity !== undefined && (
+                    <Text
+                      style={[
+                        styles.quantityText,
+                        item.quantity === 0 && styles.soldOutText,
+                      ]}
+                    >
+                      {item.quantity > 0
+                        ? `${item.quantity} remaining tickets`
+                        : "Completely sold out"}
+                    </Text>
+                  )}
+                </View>
+              </TouchableOpacity>
+            </Link>
+          );
+        }}
         ListEmptyComponent={
-          <Text style={{ textAlign: "center", marginTop: 50, fontSize: 18, color: "#666" }}>
-           There are no events at the moment.
+          <Text
+            style={{ textAlign: "center", marginTop: 50, fontSize: 18, color: "#666" }}
+          >
+            There are no events at the moment.
           </Text>
         }
       />
