@@ -104,7 +104,7 @@ export default function AddEventScreen() {
       const newEvent = {
         id,
         name: eventTitle,
-        date: date.toDateString(),
+        date: date.toISOString().split("T")[0],
         start_time: startTime.toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
@@ -144,7 +144,11 @@ export default function AddEventScreen() {
         JSON.stringify(existingEvents, null, 2)
       );
 
-      await setDoc(doc(db, "events", id.toString()), newEvent);
+      await setDoc(doc(db, "events", id.toString()), {
+  ...newEvent,
+  quantity: parseInt(attendees) || 0,   
+});
+
 
 
       Alert.alert("Success", `Your event "${eventTitle}" has been saved!`);
@@ -180,7 +184,7 @@ export default function AddEventScreen() {
           Tell us about your event so we can help you make it great!
         </Text>
 
-        {/* EVENT TYPE */}
+      
         <Text style={styles.label}>What type of events do you host?</Text>
         <View style={styles.chipContainer}>
           {EVENT_TYPES.map((type) => (
@@ -204,7 +208,7 @@ export default function AddEventScreen() {
           ))}
         </View>
 
-        {/* EVENT TITLE */}
+       
         <Text style={styles.label}>What's the name of your event?</Text>
         <TextInput
           style={styles.input}
@@ -214,7 +218,6 @@ export default function AddEventScreen() {
           onChangeText={setEventTitle}
         />
 
-        {/* DATE */}
         <Text style={[styles.label, { marginTop: 20 }]}>Event Date</Text>
         <TouchableOpacity
           style={styles.modernInput}
@@ -223,7 +226,7 @@ export default function AddEventScreen() {
           <Text style={styles.inputText}>📅 {date.toLocaleDateString()}</Text>
         </TouchableOpacity>
 
-        {/* START TIME */}
+      
         <Text style={styles.label}>Start Time</Text>
         <TouchableOpacity
           style={styles.modernInput}
@@ -239,7 +242,7 @@ export default function AddEventScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* END TIME */}
+     
         <Text style={styles.label}>End Time</Text>
         <TouchableOpacity
           style={styles.modernInput}
@@ -255,7 +258,7 @@ export default function AddEventScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* LOCATION TYPE */}
+    
         <Text style={[styles.label, { marginTop: 20 }]}>
           Where is it located?
         </Text>
@@ -285,7 +288,7 @@ export default function AddEventScreen() {
           ))}
         </View>
 
-        {/* CUSTOM LOCATION INPUT */}
+      
         <TextInput
           style={styles.input}
           placeholder="Enter location"
@@ -294,7 +297,7 @@ export default function AddEventScreen() {
           onChangeText={setLocationDetails}
         />
 
-        {/* PRICE */}
+    
         <Text style={[styles.label, { marginTop: 20 }]}>Event Price</Text>
         <TextInput
           style={styles.input}
@@ -305,7 +308,7 @@ export default function AddEventScreen() {
           keyboardType="numeric"
         />
 
-        {/* IMAGE */}
+   
         <Text style={[styles.label, { marginTop: 20 }]}>Event Image URL</Text>
         <TextInput
           style={styles.input}
@@ -315,7 +318,7 @@ export default function AddEventScreen() {
           onChangeText={setImage}
         />
 
-        {/* ATTENDEES */}
+   
         <Text style={[styles.label, { marginTop: 20 }]}>
           Expected Attendees
         </Text>
@@ -328,7 +331,7 @@ export default function AddEventScreen() {
           keyboardType="numeric"
         />
 
-        {/* ORGANIZED BY */}
+      
         <Text style={[styles.label, { marginTop: 20 }]}>Organized By</Text>
         <TextInput
           style={styles.input}
@@ -338,7 +341,7 @@ export default function AddEventScreen() {
           onChangeText={setOrganizedBy}
         />
 
-        {/* DESCRIPTION */}
+       
         <Text style={[styles.label, { marginTop: 20 }]}>Event Description</Text>
         <TextInput
           style={[styles.input, { height: 100 }]}
@@ -349,13 +352,12 @@ export default function AddEventScreen() {
           multiline
         />
 
-        {/* ADD EVENT */}
+        
         <TouchableOpacity style={styles.addButton} onPress={handleAddEvent}>
           <Text style={styles.addButtonText}>Add Event</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* POPUP PICKER */}
       {Object.entries(showPicker).map(([type, visible]) =>
         visible ? (
           <Modal key={type} transparent animationType="fade">

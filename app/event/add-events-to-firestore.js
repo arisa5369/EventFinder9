@@ -1,10 +1,10 @@
 import { db } from "../firebase";
-import { collection, setDoc, doc, getDocs, getDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs } from "firebase/firestore";
 const events = [
   {
-    id: "1",
+    
     name: "Basketball Championship",
-    date: "Nov 15, 2025",
+    date: "Nov 17, 2025",
     location: "Prishtina Arena",
     price: 15,
     image: "https://reporteri.net/wp-content/uploads/2020/03/ttt-4.png",
@@ -16,9 +16,9 @@ const events = [
     sold: 0
   },
   {
-    id: "2",
+  
     name: "Rock Festival",
-    date: "Dec 5, 2025",
+    date: "Nov 21, 2025",
     location: "Skanderbeg Square",
     price: 25,
     image: "https://sunnyhillfestival.com/wp-content/uploads/2025/07/293A2696-scaled.jpg",
@@ -31,9 +31,9 @@ const events = [
     sold: 0
   },
   {
-    id: "3",
+    
     name: "Jazz Night",
-    date: "Jan 10, 2026",
+    date: "Nov 17, 2025",
     location: "Peja Cultural Hall",
     price: 20,
     image: "https://www.nojazzfest.com/wp-content/uploads/2020/01/culture-1.jpg",
@@ -46,9 +46,9 @@ const events = [
     sold: 0
   },
   {
-    id: "4",
+    
     name: "Folk Music Festival",
-    date: "Dec 18, 2025",
+    date: "Nov 18, 2025",
     location: "Tirana Amphitheatre",
     price: 10,
     image: "https://albania.al/wp-content/uploads/2019/08/folk1.jpg",
@@ -61,9 +61,9 @@ const events = [
     sold: 0
   },
   {
-    id: "5",
+  
     name: "Tech Expo",
-    date: "Jan 22, 2026",
+    date: "Nov 19, 2025",
     location: "Prishtina Convention Center",
     price: 30,
     image: "https://www.technologyrecord.com/Portals/0/EasyDNNnews/4826/SRTE2024_web.jpg",
@@ -76,9 +76,9 @@ const events = [
     sold: 0
   },
   {
-    id: "6",
+    
     name: "Wine & Food Fair",
-    date: "Feb 14, 2026",
+    date: "Nov 20, 2025",
     location: "Shkodër City Square",
     price: 12,
     image: "https://img.evbuc.com/https%3A%2F%2Fcdn.evbuc.com%2Fimages%2F367734419%2F194011791043%2F1%2Foriginal.20211201-153705?w=600&auto=format%2Ccompress&q=75&sharp=10&rect=0%2C77%2C900%2C450&s=0affcfd8f0317c15056b4136a2f75d83",
@@ -91,9 +91,9 @@ const events = [
     sold: 0
   },
   {
-    id: "7",
+   
     name: "Classical Music Concert",
-    date: "Mar 5, 2026",
+    date: "Nov 21, 2025",
     location: "National Theatre of Kosovo",
     price: 18,
     image: "https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/The_philharmonic_orchestra_of_Kosovo.JPG/1280px-The_philharmonic_orchestra_of_Kosovo.JPG",
@@ -106,9 +106,9 @@ const events = [
     sold: 0
   },
   {
-    id: "8",
+    
     name: "Street Art Festival",
-    date: "Apr 10, 2026",
+    date: "Nov 17, 2025",
     location: "Tirana Downtown",
     price: 8,
     image: "https://imgproxy.urbaneez.art/insecure/rs:fit:1500:0/plain/https://urbaneez-dev.s3.eu-central-1.amazonaws.com/Wynwood%20Walls%20Miami%20Entrance.jpg",
@@ -121,9 +121,9 @@ const events = [
     sold: 0
   },
   {
-    id: "9",
+   
     name: "Marathon Run",
-    date: "May 2, 2026",
+    date: "Nov 20, 2025",
     location: "Prishtina City Center",
     price: 20,
     image: "https://images.ahotu.com/dbdfqrc3vcf4m63tcpfzucrbjov6?w=1920&q=75&f=webp",
@@ -140,21 +140,23 @@ export default async function seedEvents() {
   const eventsRef = collection(db, "events");
 
   for (const event of events) {
-    // Kontrollo nëse dokumenti me ID ekziston tashmë
-    const docRef = doc(db, "events", event.id);
-    const docSnap = await getDoc(docRef);
+    
+    const snapshot = await getDocs(eventsRef);
+    const exists = snapshot.docs.some(
+      (doc) => doc.data().name === event.name && doc.data().date === event.date
+    );
 
-    if (docSnap.exists()) {
-      console.log("Dokumenti ekziston tashmë për ID:", event.id, " - ", event.name);
+    if (exists) {
+      console.log("Event tashmë ekziston:", event.name);
       continue;
     }
 
-    // Shto eventin pa kontroll për name dhe date, sepse ID është unik
-    await setDoc(docRef, {
+    const docRef = await addDoc(eventsRef, {
       ...event,
       createdAt: new Date(),
     });
-    console.log("Event shtuar:", event.name, "me ID:", event.id);
+
+    console.log("Event shtuar:", event.name, "me ID:", docRef.id);
   }
 
   console.log("Përfundoi shtimi i eventeve!");
