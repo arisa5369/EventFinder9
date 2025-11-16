@@ -35,6 +35,11 @@ import {
 } from "firebase/firestore";
 import { signInAnonymously, onAuthStateChanged } from "firebase/auth";
 
+import seedEvents from "../event/add-events-to-firestore";
+
+if (__DEV__) {
+  seedEvents().catch((err) => console.log("Gabim në seed:", err));
+}
 interface RawEvent {
   id: string;
   name: string;
@@ -94,7 +99,6 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     status: "",
   });
 
-  // ========== IMAGE HELPER ==========
   const safeImageSource = useCallback((image: any) => {
     const placeholder = { uri: "https://via.placeholder.com/300x150.png?text=Event" };
     if (!image) return placeholder;
@@ -110,7 +114,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     return placeholder;
   }, []);
 
-  // ========== ASYNC STORAGE ==========
+
   const loadSavedEvents = useCallback(async () => {
     try {
       const json = await AsyncStorage.getItem("savedEvents");
@@ -144,7 +148,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     }
   }, []);
 
-  // ========== AUTH ==========
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -173,7 +177,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     }
   };
 
-  // ========== FIRESTORE + FOCUS + NEW EVENT FROM AddEventScreen ==========
+
   useEffect(() => {
     loadSavedEvents();
     loadLocalChanges();
@@ -225,7 +229,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     };
   }, [navigation, loadSavedEvents, loadLocalChanges]);
 
-  // Rifresko me event të ri nga AddEventScreen
+
   useEffect(() => {
     if (route?.params?.newEvent) {
       const newEv = route.params.newEvent;
@@ -257,7 +261,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     });
   }, []);
 
-  // ========== CRUD ==========
+
   const handleCreate = useCallback(async () => {
     if (!form.name || !form.location || !form.date) {
       Alert.alert("Gabim", "Plotëso fushat e detyrueshme!");
@@ -388,7 +392,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     }
   }, [selectedEvent, currentUid, detailsModalVisible]);
 
-  // ========== DATA PROCESSING ==========
+
   const processedLocalEvents = useMemo(() => {
     return (events as RawEvent[])
       .filter((e) => !deletedLocalIds.includes(e.id))
@@ -423,7 +427,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     );
   }, [allEvents, searchQuery, searchLocation]);
 
-  // ========== UI HELPERS ==========
+
   const openDetailsModal = useCallback((event: Event) => {
     setSelectedEvent(event);
     setDetailsModalVisible(true);
@@ -451,7 +455,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
     }
   }, [selectedEvent]);
 
-  // ========== RENDER ==========
+
   return (
     <View style={styles.container}>
       <NotLoggedInBanner variant="banner" position="top" />
@@ -519,7 +523,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
         )}
       />
 
-      {/* SEARCH MODAL */}
+  
       <Modal animationType="slide" transparent visible={modalVisible}>
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
@@ -559,7 +563,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
         </View>
       </Modal>
 
-      {/* DETAILS MODAL */}
+
       <Modal animationType="slide" transparent visible={detailsModalVisible}>
         <View style={styles.modalContainer}>
           <View style={styles.bottomSheet}>
@@ -661,7 +665,6 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
         </View>
       </Modal>
 
-      {/* CREATE MODAL */}
       <Modal animationType="slide" transparent visible={createModalVisible}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
@@ -696,7 +699,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
         </KeyboardAvoidingView>
       </Modal>
 
-      {/* EDIT MODAL */}
+
       <Modal animationType="slide" transparent visible={editModalVisible}>
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
           <View style={styles.modalContainer}>
@@ -734,7 +737,7 @@ export default function Discover({ navigation, route }: { navigation?: any; rout
   );
 }
 
-/* ==================== STYLES ==================== */
+
 const styles = StyleSheet.create({
   container: { flex: 1, paddingHorizontal: 20, paddingTop: 50, backgroundColor: "#f2f4f8" },
   header: { fontSize: 36, fontWeight: "bold", marginBottom: 24, color: "#1a1a1a" },

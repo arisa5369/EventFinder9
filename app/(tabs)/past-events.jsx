@@ -1,4 +1,3 @@
-// app/past-events.jsx
 import { useRouter } from "expo-router";
 import {
   Dimensions,
@@ -63,7 +62,7 @@ export default function PastEventsScreen() {
         router.push({
           pathname: "/event-details",
           params: {
-            id: item.id,                    // SHTUAR KËTU
+            id: item.id,                  
             title: item.title,
             date: item.date,
             location: item.location,

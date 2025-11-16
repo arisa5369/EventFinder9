@@ -7,53 +7,63 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
+  RefreshControl,
 } from "react-native";
-import { useEffect, useState } from "react";
-import { collection, getDocs, query, orderBy } from "firebase/firestore";
-import { db } from "../firebase"; 
+import { useEffect, useState, useCallback } from "react";
+import { collection, getDocs, query, orderBy, onSnapshot } from "firebase/firestore";
+import { db } from "../firebase";
 import NotLoggedInBanner from "../../components/NotLoggedInBanner";
 
 export default function EventsList() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchEvents = useCallback(() => {
+    const q = query(collection(db, "events"), orderBy("date"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const list = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setEvents(list as any[]);
+      setLoading(false);
+      setRefreshing(false);
+    }, (error) => {
+      console.error("Error while receiving events:", error);
+      setLoading(false);
+      setRefreshing(false);
+    });
+
+   
+    return unsubscribe;
+  }, []);
 
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const q = query(collection(db, "events"), orderBy("date"));
-        const snapshot = await getDocs(q);
-        const list = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        }));
-        setEvents(list as any[]);
-      } catch (e) {
-        console.error("Error while retrieving events:", e);
-      } finally {
-        setLoading(false);
-      }
-    };
+    const unsubscribe = fetchEvents();
 
+    
+    return () => unsubscribe();
+  }, [fetchEvents]);
+
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
     fetchEvents();
-  }, []);
+  }, [fetchEvents]);
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#4E73DF" />
-        <Text style={{ marginTop: 10 }}>Loading events...</Text>
+        <Text style={styles.loadingText}>Loading events...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-    
-      <NotLoggedInBanner
-        variant="button"
-        position="top"
-        style={{}} 
-      />
+      <NotLoggedInBanner variant="button" position="top" style={{}} />
 
       <Text style={styles.title}>Upcoming Events</Text>
 
@@ -61,31 +71,46 @@ export default function EventsList() {
         data={events}
         keyExtractor={(item) => item.id}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
         renderItem={({ item }) => (
           <Link
             href={{ pathname: "/event/[id]", params: { id: item.id } }}
             asChild
           >
             <TouchableOpacity style={styles.card}>
-              <Image source={{ uri: item.image }} style={styles.image} />
+              <Image
+                source={{ uri: item.image || "https://via.placeholder.com/300x180" }}
+                style={styles.image}
+                resizeMode="cover"
+              />
               <View style={styles.info}>
                 <Text style={styles.name}>{item.name}</Text>
                 <Text style={styles.details}>
-                  Date: {item.date} | Location: {item.location}
+                  {item.date} • {item.location}
                 </Text>
                 <Text style={styles.price}>€ {item.price}</Text>
 
                 {item.quantity !== undefined && (
-                  <Text style={styles.quantityText}>
+                  <Text style={[
+                    styles.quantityText,
+                    item.quantity === 0 && styles.soldOutText
+                  ]}>
                     {item.quantity > 0
-                      ? `${item.quantity} tickets left`
-                      : "Sold Out"}
+                      ? `${item.quantity} remaining tickets`
+                      : "Completely sold out"}
                   </Text>
                 )}
               </View>
             </TouchableOpacity>
           </Link>
         )}
+        ListEmptyComponent={
+          <Text style={{ textAlign: "center", marginTop: 50, fontSize: 18, color: "#666" }}>
+           There are no events at the moment.
+          </Text>
+        }
       />
     </View>
   );
@@ -94,53 +119,67 @@ export default function EventsList() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
-    padding: 20,
+    backgroundColor: "#fff",
+    padding: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#fff",
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#666",
   },
   title: {
-    color: "#000",
-    fontSize: 24,
-    fontWeight: "700",
+    fontSize: 26,
+    fontWeight: "800",
     textAlign: "center",
-    marginBottom: 20,
+    marginVertical: 20,
+    color: "#000",
   },
   card: {
-    backgroundColor: "#dfdfdfff",
-    borderRadius: 14,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 16,
     marginBottom: 16,
     overflow: "hidden",
+    elevation: 6,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
   },
   image: {
     width: "100%",
     height: 180,
   },
   info: {
-    padding: 12,
+    padding: 16,
   },
   name: {
+    fontSize: 19,
+    fontWeight: "700",
     color: "#000",
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   details: {
-    color: "#000",
     fontSize: 14,
+    color: "#555",
+    marginBottom: 8,
   },
   price: {
+    fontSize: 18,
+    fontWeight: "700",
     color: "#4E73DF",
-    fontSize: 16,
-    marginTop: 6,
-    fontWeight: "500",
+    marginBottom: 8,
   },
   quantityText: {
-    color: "#e74c3c",
-    fontSize: 13,
-    marginTop: 4,
+    fontSize: 14,
     fontWeight: "600",
+    color: "#27ae60",
+  },
+  soldOutText: {
+    color: "#e74c3c",
   },
 });

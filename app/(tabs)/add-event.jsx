@@ -13,32 +13,24 @@ import {
   ActivityIndicator,
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
-// import both default app and named db & auth export so we can fallback if needed
-import app, { db as exportedDb, auth } from "./test-firebase";
+
+import app, { db as exportedDb, auth } from "../firebase/test-firebase.tsx";
 import { getFirestore, collection, addDoc, getDocs } from "firebase/firestore";
 import { signInAnonymously } from "firebase/auth";
 import * as Location from "expo-location";
 import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
-/**
- * Robust coordinate normalizer:
- * Accepts Firestore GeoPoint-like objects { latitude, longitude },
- * objects with lat/lng, string coordinates, arrays [lat, lng], or nested fields.
- */
 const normalizeCoordinates = (c) => {
   if (!c) return null;
 
-  // Firestore GeoPoint or simple { latitude: number, longitude: number }
   if (typeof c.latitude === "number" && typeof c.longitude === "number") {
     return { latitude: c.latitude, longitude: c.longitude };
   }
 
-  // lat/lng numbers
   if (typeof c.lat === "number" && typeof c.lng === "number") {
     return { latitude: c.lat, longitude: c.lng };
   }
 
-  // strings parsable to numbers
   if (typeof c.latitude === "string" && typeof c.longitude === "string") {
     const lat = parseFloat(c.latitude);
     const lng = parseFloat(c.longitude);
@@ -50,14 +42,14 @@ const normalizeCoordinates = (c) => {
     if (!isNaN(lat) && !isNaN(lng)) return { latitude: lat, longitude: lng };
   }
 
-  // array [lat, lng]
+
   if (Array.isArray(c) && c.length >= 2) {
     const lat = parseFloat(c[0]);
     const lng = parseFloat(c[1]);
     if (!isNaN(lat) && !isNaN(lng)) return { latitude: lat, longitude: lng };
   }
 
-  // nested forms
+
   if (c.coords) return normalizeCoordinates(c.coords);
   if (c.coordinates) return normalizeCoordinates(c.coordinates);
   if (c.location) return normalizeCoordinates(c.location);
@@ -76,9 +68,7 @@ const EVENT_TYPES = [
 ];
 
 export default function AddEventScreen({ navigation }) {
-  // Create a local firestore instance using exported db or fallback to getFirestore(app)
   const firestoreInstance = exportedDb || getFirestore(app);
-  // Diagnostic logs (remove in production)
   console.log("Firestore exportedDb:", exportedDb);
   console.log("Firestore fallback getFirestore(app):", firestoreInstance);
   console.log("Auth export:", auth);
@@ -86,7 +76,6 @@ export default function AddEventScreen({ navigation }) {
   const [selectedTypes, setSelectedTypes] = useState([]);
   const [eventTitle, setEventTitle] = useState("");
 
-  // default start now, end = start + 2h
   const now = new Date();
   const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
   const [date, setDate] = useState(now);
@@ -115,7 +104,7 @@ export default function AddEventScreen({ navigation }) {
 
   useEffect(() => {
     (async () => {
-      // 0) Try to ensure anonymous auth first so Firestore rules that require request.auth != null pass
+  
       try {
         if (!auth) {
           console.warn("Auth is undefined — check test-firebase export (should export 'auth').");
@@ -128,12 +117,11 @@ export default function AddEventScreen({ navigation }) {
         }
       } catch (e) {
         console.error("Anonymous sign-in failed:", e);
-        // continue — loadEvents will likely fail with insufficient permissions if auth failed
-        // but we surface an alert so you know what's happening
+     
         Alert.alert("Autentikim dështoi", e?.message || "Nuk u arrit autentikimi anonim.");
       }
 
-      // 1) Location permission + current position
+
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === "granted") {
@@ -153,13 +141,13 @@ export default function AddEventScreen({ navigation }) {
         console.warn("Location permission failed:", err);
       }
 
-      // 2) Load existing events from Firestore
+
       await loadEvents();
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
-  // Separate function for clarity + manual refresh
+
   const loadEvents = async () => {
     if (!firestoreInstance) {
       console.error("Firestore instance is not available. Check ./test-firebase export and initialization.");
@@ -181,14 +169,14 @@ export default function AddEventScreen({ navigation }) {
         const data = d.data() || {};
         console.log("Doc", d.id, data);
 
-        // try a few common locations for coordinate fields
+
         const coords =
           normalizeCoordinates(data.coordinates) ||
           normalizeCoordinates(data.coords) ||
           normalizeCoordinates(data.location) ||
           null;
 
-        // numeric parsing
+
         let priceNum = 0;
         if (typeof data.price === "number") priceNum = data.price;
         else if (typeof data.price === "string") {
@@ -229,7 +217,7 @@ export default function AddEventScreen({ navigation }) {
       }
     } catch (err) {
       console.error("Error loading events:", err);
-      // give the user a readable message
+   
       Alert.alert("Gabim", "Nuk u arrit të ngarkoheshin eventet ekzistuese. Kontrollo console logs.");
     } finally {
       setLoadingEvents(false);
@@ -240,7 +228,7 @@ export default function AddEventScreen({ navigation }) {
     setSelectedTypes((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
   };
 
-  // DateTime picker handlers (works both iOS/Android)
+
   const onChangeDate = (event, selected) => {
     if (Platform.OS === "android") setShowDatePicker(false);
     if (!selected) return;
@@ -343,7 +331,7 @@ export default function AddEventScreen({ navigation }) {
       const docRef = await addDoc(collection(firestoreInstance, "events"), newEvent);
       setExistingEvents((prev) => [...prev, { id: docRef.id, ...newEvent }]);
       Alert.alert("Sukses!", `Eventi "${newEvent.name}" u shtua me sukses!`);
-      // reset form (same as before)
+
       setSelectedTypes([]);
       setEventTitle("");
       setDate(new Date());
@@ -560,10 +548,7 @@ export default function AddEventScreen({ navigation }) {
           <Text style={styles.addButtonText}>Shto Eventin</Text>
         </TouchableOpacity>
 
-        {/* Optional: a visible button you can use while debugging to reload events */}
-        {/* <TouchableOpacity style={[styles.addButton, { backgroundColor: '#888', marginTop: 10 }]} onPress={loadEvents}>
-          <Text style={styles.addButtonText}>Reload events (debug)</Text>
-        </TouchableOpacity> */}
+    
       </ScrollView>
     </SafeAreaView>
   );

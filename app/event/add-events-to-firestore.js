@@ -1,21 +1,5 @@
-
-import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc } from "firebase/firestore";
-
-
-const firebaseConfig = {
-  apiKey: "AIzaSyCHacUCNfD9TLt6dJikiHVxg1FGq9fy6I0",
-  authDomain: "spoton-645b5.firebaseapp.com",
-  projectId: "spoton-645b5",
-  storageBucket: "spoton-645b5.firebasestorage.app",
-  messagingSenderId: "928397598606",
-  appId: "1:928397598606:web:81de2d57e8f9a4fd994edf",
-  measurementId: "G-KXXWR5HE3N"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
+import { db } from "../firebase";
+import { collection, addDoc, getDocs, query, where } from "firebase/firestore";
 
 const events = [
   {
@@ -155,18 +139,30 @@ const events = [
 ];
 
 
-async function addEvents() {
-  try {
-    for (const event of events) {
+export default async function seedEvents() {
+  const eventsRef = collection(db, "events");
+
+  for (const event of events) {
     
-      const { id, ...eventData } = event;
-      await addDoc(collection(db, "events"), eventData);
-      console.log(`Event shtuar: ${event.name}`);
+    const q = query(
+      eventsRef,
+      where("name", "==", event.name),
+      where("date", "==", event.date)
+    );
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+      await addDoc(eventsRef, {
+        ...event,
+        createdAt: new Date(),
+      });
+      console.log("Event shtuar:", event.name);
+    } else {
+      console.log("Event ekziston tashmë:", event.name);
     }
-    console.log("All events were added successfully!");
-  } catch (error) {
-    console.error("Gabim:", error);
   }
+
+  console.log("Përfundoi kontrolli i eventeve – asnjë dublim!");
 }
 
-addEvents();
+
