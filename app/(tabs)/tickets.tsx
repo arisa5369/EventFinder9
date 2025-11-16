@@ -10,7 +10,7 @@ import {
   RefreshControl,
 } from "react-native";
 import { useEffect, useState, useCallback } from "react";
-import { collection, query, orderBy, onSnapshot } from "firebase/firestore";
+import { collection, query, orderBy, onSnapshot, where } from "firebase/firestore";
 import { db } from "../firebase";
 import NotLoggedInBanner from "../../components/NotLoggedInBanner";
 
@@ -20,28 +20,42 @@ export default function EventsList() {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchEvents = useCallback(() => {
-    const q = query(collection(db, "events"), orderBy("date"));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const list = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+    
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); 
 
-      // Kontrollo për dublikat dhe filtro
-      const uniqueEvents = Array.from(
-        new Map(list.map((item) => [item.id, item])).values()
-      );
+    
+    const q = query(
+      collection(db, "events"),
+      where("date", ">=", currentDate.toISOString()), 
+      orderBy("date")
+    );
 
-      console.log("Eventet e marra:", uniqueEvents.map((e) => e.id)); // Debug
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const list = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
 
-      setEvents(uniqueEvents as any[]);
-      setLoading(false);
-      setRefreshing(false);
-    }, (error) => {
-      console.error("Error while receiving events:", error);
-      setLoading(false);
-      setRefreshing(false);
-    });
+        // Remove duplicates (if any)
+        const uniqueEvents = Array.from(
+          new Map(list.map((item) => [item.id, item])).values()
+        );
+
+        console.log("Upcoming events fetched:", uniqueEvents.map((e) => e.id)); // Debug
+
+        setEvents(uniqueEvents as any[]);
+        setLoading(false);
+        setRefreshing(false);
+      },
+      (error) => {
+        console.error("Error while receiving events:", error);
+        setLoading(false);
+        setRefreshing(false);
+      }
+    );
 
     return unsubscribe;
   }, []);
@@ -87,7 +101,9 @@ export default function EventsList() {
             >
               <TouchableOpacity style={styles.card}>
                 <Image
-                  source={{ uri: item.image || "https://via.placeholder.com/300x180" }}
+                  source={{
+                    uri: item.image || "https://via.placeholder.com/300x180",
+                  }}
                   style={styles.image}
                   resizeMode="cover"
                 />
@@ -116,9 +132,14 @@ export default function EventsList() {
         }}
         ListEmptyComponent={
           <Text
-            style={{ textAlign: "center", marginTop: 50, fontSize: 18, color: "#666" }}
+            style={{
+              textAlign: "center",
+              marginTop: 50,
+              fontSize: 18,
+              color: "#666",
+            }}
           >
-            There are no events at the moment.
+            No upcoming events at the moment.
           </Text>
         }
       />

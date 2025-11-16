@@ -186,7 +186,7 @@ export default function EventDetailsScreen() {
         )}
 
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Text style={styles.backText}>Kthehu</Text>
+          <Text style={styles.backText}>Return</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -198,13 +198,13 @@ const styles = StyleSheet.create({
 
   image: { width: "100%", height: 230, marginBottom: 10 },
 
-  // ZERO padding lart = nuk ka hapësirë para "Date:"
+
   content: { paddingHorizontal: 10, paddingTop: 0, paddingBottom: 12 },
 
-  // ZERO margin poshtë titullit
+
   name: { fontSize: 24, fontWeight: "700", color: "#000000ff", marginBottom: 0 },
 
-  // ZERO margin poshtë kategorisë
+
   category: { color: "#ffb703", fontSize: 14, marginBottom: 0 },
 
   info: { color: "#444", fontSize: 14, marginBottom: 0 },

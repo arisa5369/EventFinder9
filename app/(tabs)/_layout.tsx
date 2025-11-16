@@ -61,6 +61,8 @@ export default function TabsLayout() {
       />
       <Tabs.Screen name="account" options={{ href: null }} />
       <Tabs.Screen name="past-events" options={{ href: null }} />
+      <Tabs.Screen name="Mytickets" options={{ href: null }} />
+
     </Tabs>
   );
 }

@@ -13,11 +13,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useEffect, useState } from "react";
-import { collection, getDocs } from "firebase/firestore";
-import { db } from "../firebase/index";
-
+import { collection, onSnapshot } from "firebase/firestore";
+import { db, auth } from "../firebase/index"; // Supozoj që ke eksportuar 'auth' nga firebase/index.js
 const { width } = Dimensions.get("window");
-
 import dua3 from "../../assets/images/dua3.jpg";
 import albani from "../../assets/images/albani.jpg";
 import shawn1 from "../../assets/images/shawn1.jpg";
@@ -28,27 +26,27 @@ import unum from "../../assets/images/unum.jpg";
 const pastStories = [
   {
     id: "a1",
-title: "Dua Lipa took to the stage with her father, Dukagjin Lipa, to sing the song 'Era' by the band Gjurmët, touching everyone's hearts.",  
-  image: dua3,
+    title: "Dua Lipa took to the stage with her father, Dukagjin Lipa, to sing the song 'Era' by the band Gjurmët, touching everyone's hearts.",
+    image: dua3,
   },
   {
     id: "a2",
-title: "Alban Skënderaj - 'MOTIV' Concert. Due to high demand, tickets were sold out within a few hours, adding three more nights.",
+    title: "Alban Skënderaj - 'MOTIV' Concert. Due to high demand, tickets were sold out within a few hours, adding three more nights.",
     image: albani,
   },
   {
     id: "a3",
-title: "Shawn Mendes comes to Kosovo for the first time and lights up Sunny Hill Festival 2025 with an unforgettable performance!",
+    title: "Shawn Mendes comes to Kosovo for the first time and lights up Sunny Hill Festival 2025 with an unforgettable performance!",
     image: shawn1,
   },
   {
     id: "a4",
-title: "Old Timers Fest 2024 in Tirana showcased classic cars and incredible stories that amazed every visitor!",  
-  image: oldtimer,
+    title: "Old Timers Fest 2024 in Tirana showcased classic cars and incredible stories that amazed every visitor!",
+    image: oldtimer,
   },
   {
     id: "a5",
-title: "The 'Summer in Winter' festival returns this year to Prishtina with concerts, fairs, cultural activities and lots of surprises!",
+    title: "The 'Summer in Winter' festival returns this year to Prishtina with concerts, fairs, cultural activities and lots of surprises!",
     image: ver,
   },
 ];
@@ -57,11 +55,18 @@ export default function PastEventsScreen() {
   const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null); 
 
   useEffect(() => {
-    const fetchPastEvents = async () => {
+  
+    const unsubscribeAuth = auth.onAuthStateChanged((currentUser) => {
+      setUser(currentUser);
+      console.log("Logged in user:", currentUser ? currentUser.uid : "There are no users");
+    });
+
+    
+    const unsubscribeEvents = onSnapshot(collection(db, "events"), (snapshot) => {
       try {
-        const snapshot = await getDocs(collection(db, "events"));
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
@@ -71,18 +76,32 @@ export default function PastEventsScreen() {
             ...doc.data(),
           }))
           .filter((event) => {
+           
             const eventDate = new Date(event.date);
-            return eventDate < today; 
+            if (isNaN(eventDate)) {
+              console.warn(`Invalid date for event ${event.id}: ${event.date}`);
+              return false;
+            }
+            return eventDate < today;
           });
 
+        console.log("Past events taken:", pastEvents);
         setEvents(pastEvents);
+        setLoading(false);
       } catch (error) {
-        console.error("Gabim: ", error);
-      } finally {
+        console.error("Error while receiving events:", error);
         setLoading(false);
       }
+    }, (error) => {
+      console.error("Error in listener: ", error);
+      setLoading(false);
+    });
+
+    
+    return () => {
+      unsubscribeAuth();
+      unsubscribeEvents();
     };
-    fetchPastEvents();
   }, []);
 
   const renderEvent = ({ item }) => (
@@ -117,7 +136,7 @@ export default function PastEventsScreen() {
           </Text>
           <Text style={styles.details}>{item.date}</Text>
           <Text style={styles.details}>{item.location}</Text>
-          <Text style={styles.status}>Përfunduar</Text>
+          <Text style={styles.status}>Complete</Text>
         </View>
       </ImageBackground>
     </TouchableOpacity>
@@ -142,7 +161,6 @@ export default function PastEventsScreen() {
       <StatusBar barStyle="light-content" backgroundColor="#000" />
       <ScrollView showsVerticalScrollIndicator={false}>
         <Text style={styles.header}>Past Events</Text>
-
         {loading ? (
           <View style={styles.loading}>
             <ActivityIndicator size="large" color="#ffb703" />
@@ -159,7 +177,6 @@ export default function PastEventsScreen() {
             contentContainerStyle={{ paddingHorizontal: 12 }}
           />
         )}
-
         <Text style={styles.subHeader}>Unforgettable Moments</Text>
         <FlatList
           data={pastStories}
