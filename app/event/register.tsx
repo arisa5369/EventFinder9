@@ -8,8 +8,8 @@ import {
   View,
 } from "react-native";
 import { onAuthStateChanged, User } from "firebase/auth";
-import { doc, getDoc } from "firebase/firestore";
-import { auth, db } from "../firebase"; 
+import { doc, getDoc, runTransaction, increment } from "firebase/firestore";
+import { auth, db } from "../firebase";
 
 interface Props {
   event: any;
@@ -22,25 +22,21 @@ export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: P
   const [ticketType, setTicketType] = useState("General Admission");
   const [showBilling, setShowBilling] = useState(false);
   const [showSelectModal, setShowSelectModal] = useState(true);
-
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const availableTickets = event.quantity || 0;
   const generalPrice = event.price;
   const vipPrice = event.price * 1.8;
   const total = ticketType === "VIP Admission" ? vipPrice * quantity : generalPrice * quantity;
 
-  
   const loadUserData = async (user: User) => {
     setEmail(user.email || "");
-
     let name = "";
-
     if (user.displayName) {
       name = user.displayName.trim();
     } else {
-      
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
@@ -53,8 +49,6 @@ export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: P
         console.log("Error getting name from Firestore:", err);
       }
     }
-
-    
     if (name && name !== " ") {
       setFullName(name);
     }
@@ -72,33 +66,75 @@ export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: P
     return () => unsubscribe();
   }, []);
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     if (quantity > availableTickets) {
-      alert("There aren't enough tickets.");
+      setError("There are not enough tickets available.");
       return;
     }
     if (!fullName.trim() || !email) {
-      alert("Please fill in your name and email!");
+      setError("Please fill in your name and email!");
       return;
     }
 
-    alert(
-      `The order was successfully confirmed.!\n\n${event.name}\n${quantity} × ${ticketType}\nTotal: €${total.toFixed(2)}\n\nThank you, ${fullName}!`
-    );
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        setError("Please log in to purchase tickets.");
+        return;
+      }
 
-    onPurchaseSuccess(quantity);
-    onClose();
+      const eventRef = doc(db, "events", event.id);
+
+      
+      await runTransaction(db, async (transaction) => {
+        const eventDoc = await transaction.get(eventRef);
+        if (!eventDoc.exists()) {
+          throw new Error("The event does not exist.");
+        }
+
+        const eventData = eventDoc.data();
+        const currentQuantity = eventData.quantity || 0;
+        const currentPurchases = eventData.purchases || [];
+
+        if (currentQuantity < quantity) {
+          throw new Error("There are not enough tickets available.");
+        }
+
+        
+        const newPurchase = {
+          userId: user.uid,
+          quantity,
+          ticketType,
+          purchaseDate: new Date().toISOString(), 
+        };
+
+        transaction.update(eventRef, {
+          purchases: [...currentPurchases, newPurchase],
+          quantity: currentQuantity - quantity,
+        });
+      });
+
+      alert(
+        `The order was successfully confirmed.!\n\n${event.name}\n${quantity} × ${ticketType}\nTotal: €${total.toFixed(2)}\n\nThank you, ${fullName}!`
+      );
+
+      onPurchaseSuccess(quantity);
+      onClose();
+    } catch (err) {
+      console.error("Error purchasing tickets:", err);
+      setError("Ticket purchase failed. Please try again.");
+    }
   };
 
   const handleClose = () => {
     setShowSelectModal(false);
     setShowBilling(false);
+    setError(null);
     onClose();
   };
 
   return (
     <View style={styles.container}>
-    
       <Modal visible={showSelectModal} animationType="slide" transparent>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
           <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
@@ -143,28 +179,29 @@ export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: P
               {availableTickets > 0 ? `${availableTickets} remaining tickets` : "There are no more tickets."}
             </Text>
 
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <TouchableOpacity
               style={[styles.confirmBtn, quantity > availableTickets && styles.btnDisabled]}
               onPress={() => {
                 if (quantity > availableTickets) {
-                  alert("You have selected more tickets than there are available!");
+                  setError("You have selected more tickets than are available.!");
                   return;
                 }
                 setShowBilling(true);
                 setShowSelectModal(false);
               }}
             >
-              <Text style={styles.confirmText}>Continue</Text>
+              <Text style={styles.confirmText}>Vazhdo</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>
       </Modal>
 
-    
       <Modal visible={showBilling} animationType="slide" transparent>
         <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={handleClose}>
           <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
-            <Text style={styles.modalTitle}>Billing information</Text>
+            <Text style={styles.modalTitle}>Billing Information</Text>
 
             <Text style={styles.label}>First and Last Name</Text>
             <TextInput
@@ -193,6 +230,8 @@ export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: P
               Total: €{total.toFixed(2)}
             </Text>
 
+            {error && <Text style={styles.error}>{error}</Text>}
+
             <TouchableOpacity style={styles.placeBtn} onPress={handlePlaceOrder}>
               <Text style={styles.placeText}>Confirm Order</Text>
             </TouchableOpacity>
@@ -206,7 +245,6 @@ export default function RegisterTickets({ event, onClose, onPurchaseSuccess }: P
     </View>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: { width: "100%" },
@@ -236,4 +274,5 @@ const styles = StyleSheet.create({
   placeText: { color: "#fff", fontSize: 18, fontWeight: "bold" },
   cancelBtn: { marginTop: 10, alignItems: "center" },
   cancelText: { color: "#000", fontSize: 16 },
+  error: { color: "#d32f2f", textAlign: "center", marginBottom: 10 },
 });

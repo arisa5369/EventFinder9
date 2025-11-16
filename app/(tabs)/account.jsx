@@ -133,7 +133,7 @@ export default function AccountScreen() {
         </View>
 
         <View style={styles.menuSection} >
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(tabs)/tickets")}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push("/(tabs)/Mytickets")}>
             <Ionicons name="ticket-outline" size={24} color="#0a7ea4" />
             <Text style={styles.menuItemText}>My Tickets</Text>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
