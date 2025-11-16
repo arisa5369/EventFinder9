@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,12 @@ import {
   Image,
   StyleSheet,
   TouchableOpacity,
+  RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { auth, db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { onAuthStateChanged } from "firebase/auth";
 
 interface Ticket {
   id: string;
@@ -26,56 +28,72 @@ const MyTickets = () => {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const router = useRouter();
 
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const user = auth.currentUser;
-        if (!user) {
-          setError("Please log in to view your tickets..");
-          setTickets([]);
-          return;
-        }
-
-        const eventsQuery = collection(db, "events");
-        const eventsSnapshot = await getDocs(eventsQuery);
-
-        const ticketsData: Ticket[] = [];
-        for (const eventDoc of eventsSnapshot.docs) {
-          const eventData = eventDoc.data();
-          const purchases = eventData.purchases || [];
-          const userPurchases = purchases.filter((p: any) => p.userId === user.uid);
-
-          userPurchases.forEach((purchase: any, index: number) => {
-            ticketsData.push({
-              id: `${eventDoc.id}-${user.uid}-${index}-${purchase.purchaseDate || Date.now()}`, 
-              event: {
-                name: eventData.name,
-                image: eventData.image,
-                date: eventData.date?.toDate
-                  ? eventData.date.toDate().toISOString().slice(0, 16).replace("T", " ")
-                  : eventData.date,
-              },
-              quantity: purchase.quantity,
-              ticketType: purchase.ticketType,
-            });
-          });
-        }
-
-        setTickets(ticketsData);
-      } catch (error) {
-        console.error("Error fetching tickets:", error);
-        setError("Failed to load tickets. Please try again..");
-      } finally {
-        setLoading(false);
+  const fetchTickets = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const user = auth.currentUser;
+      if (!user) {
+        setError("Ju lutem kyçuni për të parë biletat tuaja.");
+        setTickets([]);
+        return;
       }
-    };
 
-    fetchTickets();
+      const eventsQuery = collection(db, "events");
+      const eventsSnapshot = await getDocs(eventsQuery);
+
+      const ticketsData: Ticket[] = [];
+      for (const eventDoc of eventsSnapshot.docs) {
+        const eventData = eventDoc.data();
+        const purchases = eventData.purchases || [];
+        const userPurchases = purchases.filter((p: any) => p.userId === user.uid);
+
+        userPurchases.forEach((purchase: any, index: number) => {
+          ticketsData.push({
+            id: `${eventDoc.id}-${user.uid}-${index}-${purchase.purchaseDate || Date.now()}`,
+            event: {
+              name: eventData.name,
+              image: eventData.image,
+              date: eventData.date?.toDate
+                ? eventData.date.toDate().toISOString().slice(0, 16).replace("T", " ")
+                : eventData.date,
+            },
+            quantity: purchase.quantity,
+            ticketType: purchase.ticketType,
+          });
+        });
+      }
+
+      setTickets(ticketsData);
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+      setError("Failed to load tickets. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => {
+    
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        setTickets([]); 
+        setError("Please log in to view your tickets.");
+      }
+      fetchTickets(); 
+    });
+
+    return () => unsubscribe(); 
+  }, [fetchTickets]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchTickets();
+    setRefreshing(false);
+  }, [fetchTickets]);
 
   const renderTicket = ({ item }: { item: Ticket }) => (
     <View style={styles.ticketCard}>
@@ -87,7 +105,7 @@ const MyTickets = () => {
       <View style={styles.ticketDetails}>
         <Text style={styles.eventName}>{item.event.name}</Text>
         <Text style={styles.eventDate}>Date: {item.event.date}</Text>
-        <Text style={styles.ticketQuantity}>Tickets Purchased:{item.quantity}</Text>
+        <Text style={styles.ticketQuantity}>Tickets Purchased: {item.quantity}</Text>
         <Text style={styles.ticketType}>Type: {item.ticketType}</Text>
       </View>
     </View>
@@ -101,13 +119,16 @@ const MyTickets = () => {
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : tickets.length === 0 ? (
-        <Text style={styles.noTickets}>You haven't bought a ticket.</Text>
+        <Text style={styles.noTickets}>You didn't buy a ticket.</Text>
       ) : (
         <FlatList
           data={tickets}
           renderItem={renderTicket}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.ticketList}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          }
         />
       )}
     </View>
